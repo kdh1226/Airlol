@@ -2,17 +2,22 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Swords, ScrollText, Trophy } from "lucide-react";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
 
 export default function Home() {
   const { data, isLoading } = trpc.dashboard.summary.useQuery();
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    document.title = "Airlol - 롤 내전 전적 추적 및 플레이어 순위 랭킹 대시보드";
+  }, []);
 
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gold-gradient">대시보드</h1>
-          <p className="text-muted-foreground mt-1">내전 전적 요약</p>
+          <h2 className="text-lg text-muted-foreground mt-1">롤 내전 전적 요약 및 플레이어 순위</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => (
@@ -35,7 +40,7 @@ export default function Home() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gold-gradient">대시보드</h1>
-        <p className="text-muted-foreground mt-1">내전 전적 요약</p>
+        <h2 className="text-lg text-muted-foreground mt-1">롤 내전 전적 요약 및 플레이어 순위</h2>
       </div>
 
       {/* Summary Stats */}
