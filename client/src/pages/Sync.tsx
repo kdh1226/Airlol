@@ -1,15 +1,18 @@
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RefreshCw, CheckCircle, AlertCircle, Clock, Link } from "lucide-react";
+import { RefreshCw, CheckCircle, AlertCircle, Clock, Link, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1bUqPV6mcmbo3XlSD7kOg2JR_jexMk1rYspTrl7otNWA";
 
 export default function Sync() {
+  const { user } = useAuth();
+  const isAdmin = !!user;
   const utils = trpc.useUtils();
   const { data: syncLogs, isLoading: logsLoading } = trpc.sync.logs.useQuery();
   const syncMutation = trpc.sync.trigger.useMutation({
@@ -43,51 +46,61 @@ export default function Sync() {
         <p className="text-muted-foreground mt-1">구글 스프레드시트에서 데이터 가져오기</p>
       </div>
 
-      {/* Sync Form */}
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Link className="h-5 w-5 text-primary" />
-            구글 스프레드시트 연결
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label className="text-foreground">스프레드시트 URL</Label>
-            <Input
-              value={sheetUrl}
-              onChange={e => setSheetUrl(e.target.value)}
-              placeholder="https://docs.google.com/spreadsheets/d/..."
-              className="bg-input border-border text-foreground mt-1"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              구글 스프레드시트의 공유 URL을 입력하세요. 스프레드시트는 "링크가 있는 모든 사용자에게 공개"로 설정되어야 합니다.
-            </p>
-          </div>
-          <Button
-            onClick={handleSync}
-            disabled={syncMutation.isPending}
-            className="bg-primary text-primary-foreground hover:bg-gold-dark gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`} />
-            {syncMutation.isPending ? "동기화 중..." : "지금 동기화"}
-          </Button>
+      {/* Sync Form - Admin Only */}
+      {isAdmin ? (
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Link className="h-5 w-5 text-primary" />
+              구글 스프레드시트 연결
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label className="text-foreground">스프레드시트 URL</Label>
+              <Input
+                value={sheetUrl}
+                onChange={e => setSheetUrl(e.target.value)}
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                className="bg-input border-border text-foreground mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                구글 스프레드시트의 공유 URL을 입력하세요. 스프레드시트는 "링크가 있는 모든 사용자에게 공개"로 설정되어야 합니다.
+              </p>
+            </div>
+            <Button
+              onClick={handleSync}
+              disabled={syncMutation.isPending}
+              className="bg-primary text-primary-foreground hover:bg-gold-dark gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+              {syncMutation.isPending ? "동기화 중..." : "지금 동기화"}
+            </Button>
 
-          {syncMutation.isPending && (
-            <div className="p-4 rounded-lg bg-lol-blue/10 border border-lol-blue/20">
-              <div className="flex items-center gap-3">
-                <RefreshCw className="h-5 w-5 text-lol-blue animate-spin" />
-                <div>
-                  <p className="text-sm font-medium text-foreground">동기화 진행 중...</p>
-                  <p className="text-xs text-muted-foreground">구글 스프레드시트에서 데이터를 가져오고 있습니다.</p>
+            {syncMutation.isPending && (
+              <div className="p-4 rounded-lg bg-lol-blue/10 border border-lol-blue/20">
+                <div className="flex items-center gap-3">
+                  <RefreshCw className="h-5 w-5 text-lol-blue animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">동기화 진행 중...</p>
+                    <p className="text-xs text-muted-foreground">구글 스프레드시트에서 데이터를 가져오고 있습니다.</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="bg-card border-border">
+          <CardContent className="py-8 text-center">
+            <ShieldAlert className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+            <p className="text-foreground font-medium">관리자 전용 기능</p>
+            <p className="text-sm text-muted-foreground mt-1">데이터 동기화는 관리자 로그인 후 사용할 수 있습니다.</p>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Sync History */}
+      {/* Sync History - Visible to all */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">

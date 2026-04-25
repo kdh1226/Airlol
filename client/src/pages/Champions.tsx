@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,8 @@ import { useState, useMemo } from "react";
 import { toast } from "sonner";
 
 export default function Champions() {
+  const { user } = useAuth();
+  const isAdmin = !!user;
   const utils = trpc.useUtils();
   const { data: champions, isLoading } = trpc.champion.ranking.useQuery();
   const createMutation = trpc.champion.create.useMutation({
@@ -58,31 +61,33 @@ export default function Champions() {
           <h1 className="text-3xl font-bold text-gold-gradient">챔피언 통계</h1>
           <p className="text-muted-foreground mt-1">챔피언별 승률 통계</p>
         </div>
-        <Dialog open={showAdd} onOpenChange={(open) => { setShowAdd(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary text-primary-foreground hover:bg-gold-dark gap-2">
-              <Plus className="h-4 w-4" /> 챔피언 추가
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border">
-            <DialogHeader>
-              <DialogTitle className="text-foreground">새 챔피언 추가</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div><Label className="text-foreground">챔피언 이름 *</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="챔피언 이름" className="bg-input border-border text-foreground mt-1" /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label className="text-foreground">승</Label><Input type="number" min={0} value={wins} onChange={e => setWins(Number(e.target.value))} className="bg-input border-border text-foreground mt-1" /></div>
-                <div><Label className="text-foreground">패</Label><Input type="number" min={0} value={losses} onChange={e => setLosses(Number(e.target.value))} className="bg-input border-border text-foreground mt-1" /></div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { setShowAdd(false); resetForm(); }} className="border-border text-foreground">취소</Button>
-              <Button onClick={handleCreate} disabled={createMutation.isPending} className="bg-primary text-primary-foreground hover:bg-gold-dark">
-                {createMutation.isPending ? "추가 중..." : "추가"}
+        {isAdmin && (
+          <Dialog open={showAdd} onOpenChange={(open) => { setShowAdd(open); if (!open) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary text-primary-foreground hover:bg-gold-dark gap-2">
+                <Plus className="h-4 w-4" /> 챔피언 추가
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border">
+              <DialogHeader>
+                <DialogTitle className="text-foreground">새 챔피언 추가</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div><Label className="text-foreground">챔피언 이름 *</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="챔피언 이름" className="bg-input border-border text-foreground mt-1" /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label className="text-foreground">승</Label><Input type="number" min={0} value={wins} onChange={e => setWins(Number(e.target.value))} className="bg-input border-border text-foreground mt-1" /></div>
+                  <div><Label className="text-foreground">패</Label><Input type="number" min={0} value={losses} onChange={e => setLosses(Number(e.target.value))} className="bg-input border-border text-foreground mt-1" /></div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { setShowAdd(false); resetForm(); }} className="border-border text-foreground">취소</Button>
+                <Button onClick={handleCreate} disabled={createMutation.isPending} className="bg-primary text-primary-foreground hover:bg-gold-dark">
+                  {createMutation.isPending ? "추가 중..." : "추가"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Search */}
@@ -119,13 +124,13 @@ export default function Champions() {
                     <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground">총 게임</th>
                     <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground">승률</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground w-32 hidden md:table-cell">승률 바</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground w-20">관리</th>
+                    {isAdmin && <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground w-20">관리</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredChampions.map((champ, idx) => {
                     const isEditing = editId === champ.id;
-                    if (isEditing) {
+                    if (isEditing && isAdmin) {
                       return (
                         <tr key={champ.id} className="border-b border-primary/30 bg-secondary/30">
                           <td className="py-2 px-4 text-muted-foreground">{idx + 1}</td>
@@ -160,12 +165,14 @@ export default function Champions() {
                             <div className="stat-bar-fill" style={{ width: `${champ.winRate}%`, background: champ.winRate >= 60 ? "oklch(0.65 0.18 155)" : champ.winRate >= 50 ? "oklch(0.82 0.12 85)" : "oklch(0.6 0.2 25)" }} />
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => startEdit(champ)} className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
-                            <button onClick={() => { if (confirm("정말 삭제하시겠습니까?")) deleteMutation.mutate({ id: champ.id }); }} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
-                          </div>
-                        </td>
+                        {isAdmin && (
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => startEdit(champ)} className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+                              <button onClick={() => { if (confirm("정말 삭제하시겠습니까?")) deleteMutation.mutate({ id: champ.id }); }} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

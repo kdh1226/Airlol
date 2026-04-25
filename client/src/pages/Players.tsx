@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,8 @@ import { toast } from "sonner";
 const POSITIONS = ["탑", "정글", "미드", "원딜", "서포터", "필"];
 
 export default function Players() {
+  const { user } = useAuth();
+  const isAdmin = !!user;
   const utils = trpc.useUtils();
   const { data: players, isLoading } = trpc.player.list.useQuery();
   const createMutation = trpc.player.create.useMutation({
@@ -71,41 +74,43 @@ export default function Players() {
           <h1 className="text-3xl font-bold text-gold-gradient">플레이어 관리</h1>
           <p className="text-muted-foreground mt-1">플레이어 추가, 수정, 삭제</p>
         </div>
-        <Dialog open={showAdd} onOpenChange={(open) => { setShowAdd(open); if (!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary text-primary-foreground hover:bg-gold-dark gap-2">
-              <Plus className="h-4 w-4" /> 플레이어 추가
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border">
-            <DialogHeader>
-              <DialogTitle className="text-foreground">새 플레이어 추가</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div><Label className="text-foreground">이름 *</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="플레이어 이름" className="bg-input border-border text-foreground mt-1" /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label className="text-foreground">승</Label><Input type="number" min={0} value={wins} onChange={e => setWins(Number(e.target.value))} className="bg-input border-border text-foreground mt-1" /></div>
-                <div><Label className="text-foreground">패</Label><Input type="number" min={0} value={losses} onChange={e => setLosses(Number(e.target.value))} className="bg-input border-border text-foreground mt-1" /></div>
-              </div>
-              <div>
-                <Label className="text-foreground">주 포지션</Label>
-                <Select value={mainPosition} onValueChange={setMainPosition}>
-                  <SelectTrigger className="bg-input border-border text-foreground mt-1"><SelectValue placeholder="선택" /></SelectTrigger>
-                  <SelectContent className="bg-popover border-border">
-                    {POSITIONS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label className="text-foreground">메모</Label><Input value={memo} onChange={e => setMemo(e.target.value)} placeholder="메모 (선택)" className="bg-input border-border text-foreground mt-1" /></div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { setShowAdd(false); resetForm(); }} className="border-border text-foreground">취소</Button>
-              <Button onClick={handleCreate} disabled={createMutation.isPending} className="bg-primary text-primary-foreground hover:bg-gold-dark">
-                {createMutation.isPending ? "추가 중..." : "추가"}
+        {isAdmin && (
+          <Dialog open={showAdd} onOpenChange={(open) => { setShowAdd(open); if (!open) resetForm(); }}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary text-primary-foreground hover:bg-gold-dark gap-2">
+                <Plus className="h-4 w-4" /> 플레이어 추가
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border">
+              <DialogHeader>
+                <DialogTitle className="text-foreground">새 플레이어 추가</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div><Label className="text-foreground">이름 *</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="플레이어 이름" className="bg-input border-border text-foreground mt-1" /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label className="text-foreground">승</Label><Input type="number" min={0} value={wins} onChange={e => setWins(Number(e.target.value))} className="bg-input border-border text-foreground mt-1" /></div>
+                  <div><Label className="text-foreground">패</Label><Input type="number" min={0} value={losses} onChange={e => setLosses(Number(e.target.value))} className="bg-input border-border text-foreground mt-1" /></div>
+                </div>
+                <div>
+                  <Label className="text-foreground">주 포지션</Label>
+                  <Select value={mainPosition} onValueChange={setMainPosition}>
+                    <SelectTrigger className="bg-input border-border text-foreground mt-1"><SelectValue placeholder="선택" /></SelectTrigger>
+                    <SelectContent className="bg-popover border-border">
+                      {POSITIONS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label className="text-foreground">메모</Label><Input value={memo} onChange={e => setMemo(e.target.value)} placeholder="메모 (선택)" className="bg-input border-border text-foreground mt-1" /></div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { setShowAdd(false); resetForm(); }} className="border-border text-foreground">취소</Button>
+                <Button onClick={handleCreate} disabled={createMutation.isPending} className="bg-primary text-primary-foreground hover:bg-gold-dark">
+                  {createMutation.isPending ? "추가 중..." : "추가"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Search */}
@@ -135,7 +140,7 @@ export default function Players() {
             const winRate = total > 0 ? (player.wins / total) * 100 : 0;
             const isEditing = editId === player.id;
 
-            if (isEditing) {
+            if (isEditing && isAdmin) {
               return (
                 <Card key={player.id} className="bg-card border-primary/50">
                   <CardContent className="p-4 space-y-3">
@@ -170,14 +175,16 @@ export default function Players() {
                         <span className="text-xs px-2 py-0.5 rounded-full bg-lol-blue/10 text-lol-blue-light mt-1 inline-block">{player.mainPosition}</span>
                       )}
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => startEdit(player)} className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button onClick={() => { if (confirm("정말 삭제하시겠습니까?")) deleteMutation.mutate({ id: player.id }); }} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    {isAdmin && (
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => startEdit(player)} className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => { if (confirm("정말 삭제하시겠습니까?")) deleteMutation.mutate({ id: player.id }); }} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-4 text-sm">
                     <span className="text-win font-medium">{player.wins}승</span>

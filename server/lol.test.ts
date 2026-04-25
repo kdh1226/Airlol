@@ -78,8 +78,9 @@ describe("Player API", () => {
   it("should create a player with authenticated access", async () => {
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
+    const uniqueName = `테스트플레이어_${Date.now()}`;
     const result = await caller.player.create({
-      name: "테스트플레이어",
+      name: uniqueName,
       wins: 10,
       losses: 5,
       mainPosition: "미드",
@@ -122,8 +123,9 @@ describe("Champion API", () => {
   it("should create a champion with authenticated access", async () => {
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
+    const uniqueName = `가렌_${Date.now()}`;
     const result = await caller.champion.create({
-      name: "가렌",
+      name: uniqueName,
       wins: 15,
       losses: 8,
     });
