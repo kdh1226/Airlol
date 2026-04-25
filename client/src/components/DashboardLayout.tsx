@@ -158,7 +158,7 @@ function DashboardLayoutContent({
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="font-bold tracking-tight truncate text-gold-gradient text-lg">
-                    LoL 내전
+                    Airlol
                   </span>
                 </div>
               ) : null}
