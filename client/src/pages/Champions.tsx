@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,7 @@ import { useState, useMemo } from "react";
 import { toast } from "sonner";
 
 export default function Champions() {
-  const { user } = useAuth();
-  const isAdmin = !!user;
+  const { isAdmin } = useAdminAuth();
   const utils = trpc.useUtils();
   const { data: champions, isLoading } = trpc.champion.ranking.useQuery();
   const createMutation = trpc.champion.create.useMutation({

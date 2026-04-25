@@ -17,6 +17,24 @@ function createPublicContext(): TrpcContext {
   };
 }
 
+// Admin context with admin_mode cookie (new password-based auth)
+function createAdminCookieContext(): TrpcContext {
+  return {
+    user: null,
+    req: {
+      protocol: "https",
+      headers: {
+        cookie: "admin_mode=true",
+      },
+    } as TrpcContext["req"],
+    res: {
+      clearCookie: () => {},
+      cookie: () => {},
+    } as unknown as TrpcContext["res"],
+  };
+}
+
+// Legacy auth context (OAuth user) - still supported
 function createAuthContext(): TrpcContext {
   const user: AuthenticatedUser = {
     id: 1,
@@ -41,6 +59,51 @@ function createAuthContext(): TrpcContext {
     } as TrpcContext["res"],
   };
 }
+
+describe("Admin Auth API", () => {
+  it("should check admin status as false for public user", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.auth.adminCheck();
+    expect(result.isAdmin).toBe(false);
+  });
+
+  it("should check admin status as true when admin_mode cookie is set", async () => {
+    const ctx = createAdminCookieContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.auth.adminCheck();
+    expect(result.isAdmin).toBe(true);
+  });
+
+  it("should reject adminLogin with wrong password", async () => {
+    const ctx = createPublicContext();
+    (ctx.res as any).cookie = () => {};
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.auth.adminLogin({ password: "wrong" })
+    ).rejects.toThrow();
+  });
+
+  it("should accept adminLogin with correct password", async () => {
+    const ctx = createPublicContext();
+    let cookieSet = false;
+    (ctx.res as any).cookie = () => { cookieSet = true; };
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.auth.adminLogin({ password: "777" });
+    expect(result.success).toBe(true);
+    expect(cookieSet).toBe(true);
+  });
+
+  it("should clear admin_mode cookie on adminLogout", async () => {
+    const ctx = createAdminCookieContext();
+    let cookieCleared = false;
+    (ctx.res as any).clearCookie = (name: string) => { if (name === "admin_mode") cookieCleared = true; };
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.auth.adminLogout();
+    expect(result.success).toBe(true);
+    expect(cookieCleared).toBe(true);
+  });
+});
 
 describe("Dashboard API", () => {
   it("should return dashboard summary with public access", async () => {
@@ -94,8 +157,8 @@ describe("Player API", () => {
     }
   });
 
-  it("should create a player with authenticated access", async () => {
-    const ctx = createAuthContext();
+  it("should create a player with admin_mode cookie", async () => {
+    const ctx = createAdminCookieContext();
     const caller = appRouter.createCaller(ctx);
     const uniqueName = `테스트플레이어_${Date.now()}`;
     const result = await caller.player.create({
@@ -108,8 +171,8 @@ describe("Player API", () => {
     expect(result).toBeDefined();
   });
 
-  it("should create a player with series stats", async () => {
-    const ctx = createAuthContext();
+  it("should create a player with series stats via admin cookie", async () => {
+    const ctx = createAdminCookieContext();
     const caller = appRouter.createCaller(ctx);
     const uniqueName = `시리즈테스트_${Date.now()}`;
     const result = await caller.player.create({
@@ -126,7 +189,20 @@ describe("Player API", () => {
     expect(result.seriesLosses).toBe(4);
   });
 
-  it("should reject player creation without auth", async () => {
+  it("should also allow player creation with OAuth user (backward compat)", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    const uniqueName = `OAuth테스트_${Date.now()}`;
+    const result = await caller.player.create({
+      name: uniqueName,
+      wins: 5,
+      losses: 3,
+    });
+    
+    expect(result).toBeDefined();
+  });
+
+  it("should reject player creation without any auth", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
     
@@ -164,8 +240,8 @@ describe("Champion API", () => {
     }
   });
 
-  it("should create a champion with authenticated access", async () => {
-    const ctx = createAuthContext();
+  it("should create a champion with admin cookie", async () => {
+    const ctx = createAdminCookieContext();
     const caller = appRouter.createCaller(ctx);
     const uniqueName = `가렌_${Date.now()}`;
     const result = await caller.champion.create({
@@ -235,5 +311,19 @@ describe("Sync API", () => {
         sheetUrl: "https://docs.google.com/spreadsheets/d/test",
       })
     ).rejects.toThrow();
+  });
+});
+
+describe("Sync Service", () => {
+  it("should export parseCSV function correctly", async () => {
+    const { parseCSV } = await import("./syncService");
+    const result = parseCSV("a,b,c\n1,2,3");
+    expect(result).toEqual([["a", "b", "c"], ["1", "2", "3"]]);
+  });
+
+  it("should handle quoted CSV fields", async () => {
+    const { parseCSV } = await import("./syncService");
+    const result = parseCSV('"hello, world",b,c');
+    expect(result[0][0]).toBe("hello, world");
   });
 });

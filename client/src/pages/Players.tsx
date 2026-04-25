@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,7 @@ import { toast } from "sonner";
 const POSITIONS = ["탑", "정글", "미드", "원딜", "서포터", "필"];
 
 export default function Players() {
-  const { user } = useAuth();
-  const isAdmin = !!user;
+  const { isAdmin } = useAdminAuth();
   const utils = trpc.useUtils();
   const { data: players, isLoading } = trpc.player.list.useQuery();
   const createMutation = trpc.player.create.useMutation({

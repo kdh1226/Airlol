@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,8 +18,7 @@ type MatchPlayerInput = {
 };
 
 export default function Matches() {
-  const { user } = useAuth();
-  const isAdmin = !!user;
+  const { isAdmin } = useAdminAuth();
   const utils = trpc.useUtils();
   const { data: matchList, isLoading } = trpc.match.list.useQuery();
   const createMutation = trpc.match.create.useMutation({

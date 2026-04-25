@@ -1,15 +1,33 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, router } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
+import { initTRPC } from "@trpc/server";
+import type { TrpcContext } from "./_core/context";
+
+// Admin middleware: checks admin_mode cookie
+const t = initTRPC.context<TrpcContext>().create();
+const adminModeProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  const cookieHeader = ctx.req.headers.cookie || "";
+  const isAdmin = cookieHeader.includes("admin_mode=true");
+  if (!isAdmin) {
+    // Also allow if user is logged in via OAuth (backward compat)
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "관리자 로그인이 필요합니다." });
+    }
+  }
+  return next({ ctx });
+});
 import { z } from "zod";
 import {
   getAllPlayers, getPlayerRanking, createPlayer, updatePlayer, deletePlayer,
   getAllChampions, getChampionRanking, createChampion, updateChampion, deleteChampion,
   getAllMatches, getMatchWithPlayers, createMatch, deleteMatch,
-  upsertPlayerBulk, upsertChampionBulk, createSyncLog, getRecentSyncLogs,
+  getRecentSyncLogs,
   getDashboardSummary,
 } from "./db";
+import { syncFromSpreadsheet } from "./syncService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -19,6 +37,28 @@ export const appRouter = router({
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      ctx.res.clearCookie("admin_mode", { ...cookieOptions, maxAge: -1 });
+      return { success: true } as const;
+    }),
+    adminLogin: publicProcedure
+      .input(z.object({ password: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const { ENV } = await import("./_core/env");
+        if (input.password !== ENV.adminPassword) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "비밀번호가 틀렸습니다." });
+        }
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie("admin_mode", "true", { ...cookieOptions, maxAge: 1000 * 60 * 60 * 24 * 7 }); // 7 days
+        return { success: true } as const;
+      }),
+    adminCheck: publicProcedure.query(({ ctx }) => {
+      const cookieHeader = ctx.req.headers.cookie || "";
+      const isAdmin = cookieHeader.includes("admin_mode=true");
+      return { isAdmin };
+    }),
+    adminLogout: publicProcedure.mutation(({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie("admin_mode", { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
   }),
@@ -36,7 +76,7 @@ export const appRouter = router({
     ranking: publicProcedure.query(async () => {
       return getPlayerRanking();
     }),
-    create: protectedProcedure
+    create: adminModeProcedure
       .input(z.object({
         name: z.string().min(1),
         wins: z.number().int().min(0).optional(),
@@ -49,7 +89,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return createPlayer(input);
       }),
-    update: protectedProcedure
+    update: adminModeProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().min(1).optional(),
@@ -64,7 +104,7 @@ export const appRouter = router({
         const { id, ...data } = input;
         return updatePlayer(id, data);
       }),
-    delete: protectedProcedure
+    delete: adminModeProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return deletePlayer(input.id);
@@ -78,7 +118,7 @@ export const appRouter = router({
     ranking: publicProcedure.query(async () => {
       return getChampionRanking();
     }),
-    create: protectedProcedure
+    create: adminModeProcedure
       .input(z.object({
         name: z.string().min(1),
         wins: z.number().int().min(0).optional(),
@@ -87,7 +127,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return createChampion(input);
       }),
-    update: protectedProcedure
+    update: adminModeProcedure
       .input(z.object({
         id: z.number(),
         name: z.string().min(1).optional(),
@@ -98,7 +138,7 @@ export const appRouter = router({
         const { id, ...data } = input;
         return updateChampion(id, data);
       }),
-    delete: protectedProcedure
+    delete: adminModeProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return deleteChampion(input.id);
@@ -114,7 +154,7 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return getMatchWithPlayers(input.id);
       }),
-    create: protectedProcedure
+    create: adminModeProcedure
       .input(z.object({
         matchDate: z.string().min(1),
         title: z.string().optional(),
@@ -131,7 +171,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return createMatch(input);
       }),
-    delete: protectedProcedure
+    delete: adminModeProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return deleteMatch(input.id);
@@ -142,123 +182,16 @@ export const appRouter = router({
     logs: publicProcedure.query(async () => {
       return getRecentSyncLogs();
     }),
-    trigger: protectedProcedure
+    trigger: adminModeProcedure
       .input(z.object({
         sheetUrl: z.string().min(1),
       }))
       .mutation(async ({ input }) => {
-        // Extract spreadsheet ID from URL
-        const match = input.sheetUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        const spreadsheetId = match ? match[1] : input.sheetUrl;
-        const sheetGid = "0";
-        try {
-          const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${sheetGid}`;
-          const response = await fetch(url);
-          if (!response.ok) throw new Error(`Failed to fetch spreadsheet: ${response.status}`);
-          const csvText = await response.text();
-          const rows = parseCSV(csvText);
-
-          // Parse player data from columns (index 14-16: name, wins, losses)
-          const playerData: { name: string; wins: number; losses: number }[] = [];
-          const championData: { name: string; wins: number; losses: number }[] = [];
-
-          // Try to detect player data and champion data from the CSV
-          let inChampionSection = false;
-          for (const row of rows) {
-            // Check for champion section header
-            if (row[0] && row[0].includes("챔피언별 승률")) {
-              inChampionSection = true;
-              continue;
-            }
-
-            if (inChampionSection && row[0] && row[0].trim()) {
-              const wins = parseInt(row[1]) || 0;
-              const losses = parseInt(row[2]) || 0;
-              if (wins > 0 || losses > 0) {
-                championData.push({ name: row[0].trim(), wins, losses });
-              }
-            }
-
-            // Player data from right side columns
-            if (row.length > 16 && row[14] && row[14].trim()) {
-              const wins = parseInt(row[15]) || 0;
-              const losses = parseInt(row[16]) || 0;
-              if (wins > 0 || losses > 0) {
-                playerData.push({ name: row[14].trim(), wins, losses });
-              }
-            }
-          }
-
-          let playersCount = 0;
-          let championsCount = 0;
-
-          if (playerData.length > 0) {
-            playersCount = await upsertPlayerBulk(playerData);
-          }
-          if (championData.length > 0) {
-            championsCount = await upsertChampionBulk(championData);
-          }
-
-          await createSyncLog({
-            syncType: "spreadsheet",
-            status: "success",
-            message: `Synced from spreadsheet ${spreadsheetId}`,
-            playersCount,
-            championsCount,
-          });
-
-          return { success: true, playersUpdated: playersCount, championsUpdated: championsCount };
-        } catch (error: any) {
-          await createSyncLog({
-            syncType: "spreadsheet",
-            status: "error",
-            message: error.message,
-          });
-          throw error;
-        }
+        return syncFromSpreadsheet(input.sheetUrl);
       }),
   }),
 });
 
-function parseCSV(text: string): string[][] {
-  const rows: string[][] = [];
-  let current = "";
-  let inQuotes = false;
-  let row: string[] = [];
 
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (inQuotes) {
-      if (ch === '"' && text[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else if (ch === '"') {
-        inQuotes = false;
-      } else {
-        current += ch;
-      }
-    } else {
-      if (ch === '"') {
-        inQuotes = true;
-      } else if (ch === ',') {
-        row.push(current);
-        current = "";
-      } else if (ch === '\n' || ch === '\r') {
-        if (ch === '\r' && text[i + 1] === '\n') i++;
-        row.push(current);
-        current = "";
-        rows.push(row);
-        row = [];
-      } else {
-        current += ch;
-      }
-    }
-  }
-  if (current || row.length > 0) {
-    row.push(current);
-    rows.push(row);
-  }
-  return rows;
-}
 
 export type AppRouter = typeof appRouter;

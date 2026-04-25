@@ -36,6 +36,30 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  // Scheduled sync API endpoint (for automated 30-min sync)
+  app.post("/api/scheduled/sync", async (req, res) => {
+    try {
+      // Authenticate via session cookie (scheduled task gets auto-injected cookie)
+      let user = null;
+      try {
+        const { sdk: authSdk } = await import("./sdk");
+        user = await authSdk.authenticateRequest(req);
+      } catch {
+        // Not authenticated
+      }
+      if (!user) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      const { syncFromSpreadsheet } = await import("../syncService");
+      const result = await syncFromSpreadsheet();
+      res.json(result);
+    } catch (error: any) {
+      console.error("[Scheduled Sync] Error:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,7 @@ import { toast } from "sonner";
 const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1bUqPV6mcmbo3XlSD7kOg2JR_jexMk1rYspTrl7otNWA";
 
 export default function Sync() {
-  const { user } = useAuth();
-  const isAdmin = !!user;
+  const { isAdmin } = useAdminAuth();
   const utils = trpc.useUtils();
   const { data: syncLogs, isLoading: logsLoading } = trpc.sync.logs.useQuery();
   const syncMutation = trpc.sync.trigger.useMutation({

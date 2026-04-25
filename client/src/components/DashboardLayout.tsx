@@ -1,11 +1,4 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import {
   Sidebar,
   SidebarContent,
@@ -19,12 +12,15 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, LogIn, PanelLeft, Users, Swords, Trophy, ScrollText, RefreshCw } from "lucide-react";
+import { LayoutDashboard, LogOut, Lock, Unlock, PanelLeft, Users, Swords, Trophy, ScrollText, RefreshCw } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "대시보드", path: "/" },
@@ -49,7 +45,7 @@ export default function DashboardLayout({
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
-  const { loading } = useAuth();
+  const { loading } = useAdminAuth();
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
@@ -59,7 +55,6 @@ export default function DashboardLayout({
     return <DashboardLayoutSkeleton />
   }
 
-  // 로그인 없이도 대시보드에 접근 가능
   return (
     <SidebarProvider
       style={
@@ -84,7 +79,7 @@ function DashboardLayoutContent({
   children,
   setSidebarWidth,
 }: DashboardLayoutContentProps) {
-  const { user, logout } = useAuth();
+  const { isAdmin, login, logout, loginPending, logoutPending } = useAdminAuth();
   const [location, setLocation] = useLocation();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -92,6 +87,10 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
+
+  // Password dialog state
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     if (isCollapsed) {
@@ -122,6 +121,26 @@ function DashboardLayoutContent({
       document.body.style.userSelect = "";
     };
   }, [isResizing, setSidebarWidth]);
+
+  const handleAdminLogin = async () => {
+    try {
+      await login(password);
+      toast.success("관리자 모드가 활성화되었습니다.");
+      setShowPasswordDialog(false);
+      setPassword("");
+    } catch (err: any) {
+      toast.error(err?.message || "비밀번호가 틀렸습니다.");
+    }
+  };
+
+  const handleAdminLogout = async () => {
+    try {
+      await logout();
+      toast.success("관리자 모드가 해제되었습니다.");
+    } catch {
+      toast.error("로그아웃에 실패했습니다.");
+    }
+  };
 
   return (
     <>
@@ -168,42 +187,27 @@ function DashboardLayoutContent({
           </SidebarContent>
 
           <SidebarFooter className="p-3 border-t border-border/50">
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <Avatar className="h-9 w-9 border border-primary/30 shrink-0">
-                      <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
-                        {user?.name?.charAt(0).toUpperCase() || "A"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                      <p className="text-sm font-medium truncate leading-none text-foreground">
-                        {user?.name || "관리자"}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate mt-1.5">
-                        {user?.email || "-"}
-                      </p>
-                    </div>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem
-                    onClick={logout}
-                    className="cursor-pointer text-destructive focus:text-destructive"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>로그아웃</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            {isAdmin ? (
+              <button
+                onClick={handleAdminLogout}
+                disabled={logoutPending}
+                className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center"
+              >
+                <div className="h-9 w-9 flex items-center justify-center rounded-full border border-green-500/30 bg-green-500/10 shrink-0">
+                  <Unlock className="h-4 w-4 text-green-500" />
+                </div>
+                <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+                  <p className="text-sm font-medium text-green-500">관리자 모드</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">클릭하여 로그아웃</p>
+                </div>
+              </button>
             ) : (
               <button
-                onClick={() => { window.location.href = getLoginUrl(); }}
+                onClick={() => setShowPasswordDialog(true)}
                 className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center"
               >
                 <div className="h-9 w-9 flex items-center justify-center rounded-full border border-primary/30 bg-primary/10 shrink-0">
-                  <LogIn className="h-4 w-4 text-primary" />
+                  <Lock className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
                   <p className="text-sm font-medium text-primary">관리자 로그인</p>
@@ -235,6 +239,40 @@ function DashboardLayoutContent({
         )}
         <main className="flex-1 p-6">{children}</main>
       </SidebarInset>
+
+      {/* Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="sm:max-w-[360px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              관리자 로그인
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              type="password"
+              placeholder="비밀번호를 입력하세요"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && password) {
+                  handleAdminLogin();
+                }
+              }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowPasswordDialog(false); setPassword(""); }}>
+              취소
+            </Button>
+            <Button onClick={handleAdminLogin} disabled={!password || loginPending}>
+              {loginPending ? "확인 중..." : "로그인"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
