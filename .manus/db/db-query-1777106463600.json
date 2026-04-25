@@ -1,0 +1,18 @@
+{
+  "query": "SELECT 'players' as type, COUNT(*) as count FROM players UNION ALL SELECT 'champions', COUNT(*) FROM champions;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway06.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3vSJiBVk9xuCvpz.root --database Sx8KwPTwqdiAXxUu5eKWSU --execute SELECT 'players' as type, COUNT(*) as count FROM players UNION ALL SELECT 'champions', COUNT(*) FROM champions;",
+  "rows": [
+    {
+      "type": "players",
+      "count": "31"
+    },
+    {
+      "type": "champions",
+      "count": "169"
+    }
+  ],
+  "messages": [],
+  "stdout": "type\tcount\nplayers\t31\nchampions\t169\n",
+  "stderr": "",
+  "execution_time_ms": 1525
+}

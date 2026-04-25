@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO champions (name, wins, losses) VALUES ('벡스', 7, 6) ON DUPLICATE KEY UPDATE wins=7, losses=6;\nINSERT INTO champions (name, wins, losses) VALUES ('벨코즈', 0, 1) ON DUPLICATE KEY UPDATE wins=0, losses=1;\nINSERT INTO champions (name, wins, losses) VALUES ('볼리베어', 0, 4) ON DUPLICATE KEY UPDATE wins=0, losses=4;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway06.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3vSJiBVk9xuCvpz.root --database Sx8KwPTwqdiAXxUu5eKWSU --execute INSERT INTO champions (name, wins, losses) VALUES ('벡스', 7, 6) ON DUPLICATE KEY UPDATE wins=7, losses=6;\nINSERT INTO champions (name, wins, losses) VALUES ('벨코즈', 0, 1) ON DUPLICATE KEY UPDATE wins=0, losses=1;\nINSERT INTO champions (name, wins, losses) VALUES ('볼리베어', 0, 4) ON DUPLICATE KEY UPDATE wins=0, losses=4;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2018
+}
