@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Medal } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Ranking() {
   const { data: players, isLoading } = trpc.player.ranking.useQuery();
@@ -40,7 +41,7 @@ export default function Ranking() {
                     {idx + 1}
                   </span>
                 </div>
-                <p className={`font-bold text-center ${isFirst ? "text-primary text-lg" : "text-foreground"}`}>{player.name}</p>
+                <Link href={`/player/${encodeURIComponent(player.name)}`} className={`font-bold text-center hover:text-gold transition-colors ${isFirst ? "text-primary text-lg" : "text-foreground"}`}>{player.name}</Link>
                 <p className={`text-sm font-semibold ${player.winRate >= 60 ? "text-win" : player.winRate >= 50 ? "text-primary" : "text-lose"}`}>
                   {player.winRate.toFixed(1)}%
                 </p>
@@ -90,7 +91,11 @@ export default function Ranking() {
                           {idx + 1}
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-medium text-foreground whitespace-nowrap">{player.name}</td>
+                      <td className="py-3 px-3 font-medium text-foreground whitespace-nowrap">
+                        <Link href={`/player/${encodeURIComponent(player.name)}`} className="hover:text-gold transition-colors underline-offset-2 hover:underline">
+                          {player.name}
+                        </Link>
+                      </td>
                       <td className="py-3 px-3 text-center whitespace-nowrap">
                         {player.mainPosition ? (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-lol-blue/10 text-lol-blue-light">{player.mainPosition}</span>

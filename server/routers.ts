@@ -26,6 +26,7 @@ import {
   getAllMatches, getMatchWithPlayers, createMatch, deleteMatch,
   getRecentSyncLogs,
   getDashboardSummary,
+  getPlayerDetail,
 } from "./db";
 import { syncFromSpreadsheet } from "./syncService";
 
@@ -108,6 +109,11 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         return deletePlayer(input.id);
+      }),
+    detail: publicProcedure
+      .input(z.object({ name: z.string().min(1) }))
+      .query(async ({ input }) => {
+        return getPlayerDetail(input.name);
       }),
   }),
 

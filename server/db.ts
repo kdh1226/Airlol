@@ -7,6 +7,9 @@ import {
   matches, InsertMatch,
   matchPlayers, InsertMatchPlayer,
   syncLogs,
+  playerPositionStats,
+  playerMatchupStats,
+  playerChampionStats,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -281,6 +284,53 @@ export async function getRecentSyncLogs(limit = 10) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(syncLogs).orderBy(desc(syncLogs.id)).limit(limit);
+}
+
+// ─── Player detail helpers ───
+export async function getPlayerDetail(playerName: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const playerResult = await db.select().from(players).where(eq(players.name, playerName)).limit(1);
+  if (playerResult.length === 0) return null;
+  const player = playerResult[0];
+  const positionStatsResult = await db.select().from(playerPositionStats).where(eq(playerPositionStats.playerName, playerName));
+  const matchupStatsResult = await db.select().from(playerMatchupStats).where(eq(playerMatchupStats.playerName, playerName));
+  const championStatsResult = await db.select().from(playerChampionStats).where(eq(playerChampionStats.playerName, playerName));
+  return {
+    ...player,
+    total: player.wins + player.losses,
+    winRate: player.wins + player.losses > 0 ? (player.wins / (player.wins + player.losses)) * 100 : 0,
+    seriesTotal: player.seriesWins + player.seriesLosses,
+    seriesWinRate: player.seriesWins + player.seriesLosses > 0 ? (player.seriesWins / (player.seriesWins + player.seriesLosses)) * 100 : 0,
+    positionStats: positionStatsResult,
+    matchupStats: matchupStatsResult,
+    championStats: championStatsResult,
+  };
+}
+
+export async function upsertPlayerPersonalStats(
+  playerName: string,
+  posStats: { position: string; wins: number; losses: number }[],
+  matchStats: { position: string; opponentName: string; wins: number; losses: number }[],
+  champStats: { position: string; championName: string; wins: number; losses: number }[]
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Clear existing data for this player
+  await db.delete(playerPositionStats).where(eq(playerPositionStats.playerName, playerName));
+  await db.delete(playerMatchupStats).where(eq(playerMatchupStats.playerName, playerName));
+  await db.delete(playerChampionStats).where(eq(playerChampionStats.playerName, playerName));
+  // Insert new data
+  if (posStats.length > 0) {
+    await db.insert(playerPositionStats).values(posStats.map(s => ({ playerName, ...s })));
+  }
+  if (matchStats.length > 0) {
+    await db.insert(playerMatchupStats).values(matchStats.map(s => ({ playerName, ...s })));
+  }
+  if (champStats.length > 0) {
+    await db.insert(playerChampionStats).values(champStats.map(s => ({ playerName, ...s })));
+  }
+  return { positionStats: posStats.length, matchupStats: matchStats.length, championStats: champStats.length };
 }
 
 // ─── Dashboard summary ───

@@ -1,4 +1,4 @@
-import { upsertPlayerBulk, upsertChampionBulk, createSyncLog } from "./db";
+import { upsertPlayerBulk, upsertChampionBulk, createSyncLog, upsertPlayerPersonalStats } from "./db";
 
 const SPREADSHEET_ID = "1bUqPV6mcmbo3XlSD7kOg2JR_jexMk1rYspTrl7otNWA";
 
@@ -75,6 +75,80 @@ export function parseCSV(text: string): string[][] {
     rows.push(row);
   }
   return rows;
+}
+
+const POSITION_NAMES = ["탑", "정글", "미드", "원딜", "서폿"];
+
+function parsePersonalSheet(rows: string[][]): {
+  positions: { position: string; wins: number; losses: number }[];
+  matchups: { position: string; opponentName: string; wins: number; losses: number }[];
+  champions: { position: string; championName: string; wins: number; losses: number }[];
+} {
+  const positions: { position: string; wins: number; losses: number }[] = [];
+  const matchups: { position: string; opponentName: string; wins: number; losses: number }[] = [];
+  const champions: { position: string; championName: string; wins: number; losses: number }[] = [];
+
+  let currentPosition = "";
+  let section: "none" | "position" | "matchup" | "champion" = "none";
+
+  for (const row of rows) {
+    const cell0 = (row[0] || "").trim();
+
+    // Detect position section headers like "탑 전적", "정글 전적"
+    for (const pos of POSITION_NAMES) {
+      if (cell0 === `${pos} 전적`) {
+        currentPosition = pos;
+        section = "position";
+        // Read wins/losses from same row
+        const wins = parseInt(row[1]) || 0;
+        const losses = parseInt(row[2]) || 0;
+        if (wins > 0 || losses > 0) {
+          positions.push({ position: pos, wins, losses });
+        }
+        break;
+      }
+    }
+
+    // Detect matchup section: "상대전적(탑)" etc.
+    const matchupMatch = cell0.match(/^상대전적\((.+?)\)$/);
+    if (matchupMatch) {
+      currentPosition = matchupMatch[1];
+      section = "matchup";
+      continue;
+    }
+
+    // Detect champion section: "챔피언별 전적(탑)" etc.
+    const champMatch = cell0.match(/^챔피언별 전적\((.+?)\)$/);
+    if (champMatch) {
+      currentPosition = champMatch[1];
+      section = "champion";
+      continue;
+    }
+
+    // Skip headers and section titles
+    if (cell0 === "시리즈 전적" || cell0 === "총 게임 전적" || cell0 === "" || cell0 === "이름") {
+      continue;
+    }
+
+    // Parse data rows based on current section
+    if (section === "matchup" && cell0 && !cell0.includes("전적")) {
+      const wins = parseInt(row[1]) || 0;
+      const losses = parseInt(row[2]) || 0;
+      if (wins > 0 || losses > 0) {
+        matchups.push({ position: currentPosition, opponentName: cell0, wins, losses });
+      }
+    }
+
+    if (section === "champion" && cell0 && !cell0.includes("전적") && !cell0.includes("챔피언")) {
+      const wins = parseInt(row[1]) || 0;
+      const losses = parseInt(row[2]) || 0;
+      if (wins > 0 || losses > 0) {
+        champions.push({ position: currentPosition, championName: cell0, wins, losses });
+      }
+    }
+  }
+
+  return { positions, matchups, champions };
 }
 
 async function fetchCSV(gid: string): Promise<string> {
@@ -154,7 +228,31 @@ export async function syncFromSpreadsheet(sheetUrl?: string): Promise<{
       );
     }
 
-    // 3. Merge series data into player data
+    // 3. Parse personal stats from individual sheets
+    const personalStatsMap: Record<string, {
+      positions: { position: string; wins: number; losses: number }[];
+      matchups: { position: string; opponentName: string; wins: number; losses: number }[];
+      champions: { position: string; championName: string; wins: number; losses: number }[];
+    }> = {};
+
+    for (let i = 0; i < gids.length; i += 5) {
+      const batch = gids.slice(i, i + 5);
+      await Promise.allSettled(
+        batch.map(async (gid) => {
+          try {
+            const csv = await fetchCSV(gid);
+            const sheetRows = parseCSV(csv);
+            const playerName = PLAYER_SHEET_GIDS[gid];
+            const stats = parsePersonalSheet(sheetRows);
+            personalStatsMap[playerName] = stats;
+          } catch (e) {
+            // Skip failed sheets
+          }
+        })
+      );
+    }
+
+    // 4. Merge series data into player data
     for (const p of playerData) {
       if (seriesMap[p.name]) {
         p.seriesWins = seriesMap[p.name].seriesWins;
@@ -164,6 +262,7 @@ export async function syncFromSpreadsheet(sheetUrl?: string): Promise<{
 
     let playersCount = 0;
     let championsCount = 0;
+    let personalStatsCount = 0;
 
     if (playerData.length > 0) {
       playersCount = await upsertPlayerBulk(playerData);
@@ -172,10 +271,20 @@ export async function syncFromSpreadsheet(sheetUrl?: string): Promise<{
       championsCount = await upsertChampionBulk(championData);
     }
 
+    // 5. Upsert personal stats
+    for (const [playerName, stats] of Object.entries(personalStatsMap)) {
+      try {
+        await upsertPlayerPersonalStats(playerName, stats.positions, stats.matchups, stats.champions);
+        personalStatsCount++;
+      } catch (e) {
+        // Skip failed players
+      }
+    }
+
     await createSyncLog({
       syncType: "spreadsheet",
       status: "success",
-      message: `Synced from spreadsheet (players: ${playersCount}, champions: ${championsCount}, series: ${Object.keys(seriesMap).length})`,
+      message: `Synced from spreadsheet (players: ${playersCount}, champions: ${championsCount}, series: ${Object.keys(seriesMap).length}, personalStats: ${personalStatsCount})`,
       playersCount,
       championsCount,
     });

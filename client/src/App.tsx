@@ -11,6 +11,7 @@ import Ranking from "./pages/Ranking";
 import Champions from "./pages/Champions";
 import Matches from "./pages/Matches";
 import Sync from "./pages/Sync";
+import PlayerDetail from "./pages/PlayerDetail";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
         <Route path={"/champions"} component={Champions} />
         <Route path={"/matches"} component={Matches} />
         <Route path={"/sync"} component={Sync} />
+        <Route path={"/player/:name"} component={PlayerDetail} />
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>

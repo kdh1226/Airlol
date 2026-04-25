@@ -314,6 +314,65 @@ describe("Sync API", () => {
   });
 });
 
+describe("Player Detail API", () => {
+  it("should return player detail with position/matchup/champion stats", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.player.detail({ name: "김도형" });
+    
+    expect(result).toBeDefined();
+    if (result) {
+      expect(result.name).toBe("김도형");
+      expect(typeof result.wins).toBe("number");
+      expect(typeof result.losses).toBe("number");
+      expect(typeof result.total).toBe("number");
+      expect(typeof result.winRate).toBe("number");
+      expect(typeof result.seriesTotal).toBe("number");
+      expect(typeof result.seriesWinRate).toBe("number");
+      expect(Array.isArray(result.positionStats)).toBe(true);
+      expect(Array.isArray(result.matchupStats)).toBe(true);
+      expect(Array.isArray(result.championStats)).toBe(true);
+    }
+  });
+
+  it("should return position stats with correct fields", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.player.detail({ name: "김도형" });
+    
+    if (result && result.positionStats.length > 0) {
+      const stat = result.positionStats[0];
+      expect(stat).toHaveProperty("position");
+      expect(stat).toHaveProperty("wins");
+      expect(stat).toHaveProperty("losses");
+      expect(typeof stat.position).toBe("string");
+      expect(typeof stat.wins).toBe("number");
+      expect(typeof stat.losses).toBe("number");
+    }
+  });
+
+  it("should return champion stats with correct fields", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.player.detail({ name: "김도형" });
+    
+    if (result && result.championStats.length > 0) {
+      const stat = result.championStats[0];
+      expect(stat).toHaveProperty("championName");
+      expect(stat).toHaveProperty("position");
+      expect(stat).toHaveProperty("wins");
+      expect(stat).toHaveProperty("losses");
+    }
+  });
+
+  it("should return null for non-existent player", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.player.detail({ name: "존재하지않는플레이어" });
+    expect(result).toBeNull();
+  });
+});
+
 describe("Sync Service", () => {
   it("should export parseCSV function correctly", async () => {
     const { parseCSV } = await import("./syncService");

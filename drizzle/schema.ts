@@ -98,3 +98,44 @@ export const syncLogs = mysqlTable("sync_logs", {
 });
 
 export type SyncLog = typeof syncLogs.$inferSelect;
+
+/**
+ * 포지션별 전적 테이블
+ */
+export const playerPositionStats = mysqlTable("player_position_stats", {
+  id: int("id").autoincrement().primaryKey(),
+  playerName: varchar("playerName", { length: 100 }).notNull(),
+  position: varchar("position", { length: 50 }).notNull(), // 탑, 정글, 미드, 원딜, 서폿
+  wins: int("wins").default(0).notNull(),
+  losses: int("losses").default(0).notNull(),
+});
+
+export type PlayerPositionStat = typeof playerPositionStats.$inferSelect;
+
+/**
+ * 상대전적 테이블
+ */
+export const playerMatchupStats = mysqlTable("player_matchup_stats", {
+  id: int("id").autoincrement().primaryKey(),
+  playerName: varchar("playerName", { length: 100 }).notNull(),
+  position: varchar("position", { length: 50 }).notNull(),
+  opponentName: varchar("opponentName", { length: 100 }).notNull(),
+  wins: int("wins").default(0).notNull(),
+  losses: int("losses").default(0).notNull(),
+});
+
+export type PlayerMatchupStat = typeof playerMatchupStats.$inferSelect;
+
+/**
+ * 포지션별 챔피언 전적 테이블
+ */
+export const playerChampionStats = mysqlTable("player_champion_stats", {
+  id: int("id").autoincrement().primaryKey(),
+  playerName: varchar("playerName", { length: 100 }).notNull(),
+  position: varchar("position", { length: 50 }).notNull(),
+  championName: varchar("championName", { length: 100 }).notNull(),
+  wins: int("wins").default(0).notNull(),
+  losses: int("losses").default(0).notNull(),
+});
+
+export type PlayerChampionStat = typeof playerChampionStats.$inferSelect;
