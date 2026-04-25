@@ -1,0 +1,193 @@
+import { describe, expect, it } from "vitest";
+import { appRouter } from "./routers";
+import type { TrpcContext } from "./_core/context";
+
+type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
+
+function createPublicContext(): TrpcContext {
+  return {
+    user: null,
+    req: {
+      protocol: "https",
+      headers: {},
+    } as TrpcContext["req"],
+    res: {
+      clearCookie: () => {},
+    } as TrpcContext["res"],
+  };
+}
+
+function createAuthContext(): TrpcContext {
+  const user: AuthenticatedUser = {
+    id: 1,
+    openId: "test-user",
+    email: "test@example.com",
+    name: "Test User",
+    loginMethod: "manus",
+    role: "admin",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastSignedIn: new Date(),
+  };
+
+  return {
+    user,
+    req: {
+      protocol: "https",
+      headers: {},
+    } as TrpcContext["req"],
+    res: {
+      clearCookie: () => {},
+    } as TrpcContext["res"],
+  };
+}
+
+describe("Dashboard API", () => {
+  it("should return dashboard summary with public access", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.dashboard.summary();
+    
+    expect(result).toBeDefined();
+    expect(typeof result.totalPlayers).toBe("number");
+    expect(typeof result.totalChampions).toBe("number");
+    expect(typeof result.totalMatches).toBe("number");
+    expect(result.totalPlayers).toBeGreaterThanOrEqual(0);
+    expect(result.totalChampions).toBeGreaterThanOrEqual(0);
+    expect(result.totalMatches).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("Player API", () => {
+  it("should list players with public access", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.player.list();
+    
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should return player ranking with public access", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.player.ranking();
+    
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should create a player with authenticated access", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.player.create({
+      name: "테스트플레이어",
+      wins: 10,
+      losses: 5,
+      mainPosition: "미드",
+    });
+    
+    expect(result).toBeDefined();
+  });
+
+  it("should reject player creation without auth", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    
+    await expect(
+      caller.player.create({
+        name: "무인증플레이어",
+        wins: 0,
+        losses: 0,
+      })
+    ).rejects.toThrow();
+  });
+});
+
+describe("Champion API", () => {
+  it("should list champions with public access", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.champion.list();
+    
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should return champion ranking with public access", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.champion.ranking();
+    
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should create a champion with authenticated access", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.champion.create({
+      name: "가렌",
+      wins: 15,
+      losses: 8,
+    });
+    
+    expect(result).toBeDefined();
+  });
+
+  it("should reject champion creation without auth", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    
+    await expect(
+      caller.champion.create({
+        name: "무인증챔피언",
+        wins: 0,
+        losses: 0,
+      })
+    ).rejects.toThrow();
+  });
+});
+
+describe("Match API", () => {
+  it("should list matches with public access", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.match.list();
+    
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should reject match creation without auth", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    
+    await expect(
+      caller.match.create({
+        matchDate: "2026-04-25",
+        winner: 1,
+        players: [
+          { playerName: "플레이어1", team: 1, champion: "가렌", position: "탑" },
+          { playerName: "플레이어2", team: 2, champion: "다리우스", position: "탑" },
+        ],
+      })
+    ).rejects.toThrow();
+  });
+});
+
+describe("Sync API", () => {
+  it("should list sync logs with public access", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.sync.logs();
+    
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("should reject sync trigger without auth", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    
+    await expect(
+      caller.sync.trigger({
+        sheetUrl: "https://docs.google.com/spreadsheets/d/test",
+      })
+    ).rejects.toThrow();
+  });
+});

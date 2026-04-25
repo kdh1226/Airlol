@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `matches` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`matchDate` varchar(20) NOT NULL,\n\t`title` varchar(200),\n\t`team1Name` varchar(100) NOT NULL DEFAULT '팀 1',\n\t`team2Name` varchar(100) NOT NULL DEFAULT '팀 2',\n\t`winner` int NOT NULL,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `matches_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway06.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3vSJiBVk9xuCvpz.root --database Sx8KwPTwqdiAXxUu5eKWSU --execute CREATE TABLE `matches` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`matchDate` varchar(20) NOT NULL,\n\t`title` varchar(200),\n\t`team1Name` varchar(100) NOT NULL DEFAULT '팀 1',\n\t`team2Name` varchar(100) NOT NULL DEFAULT '팀 2',\n\t`winner` int NOT NULL,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `matches_id` PRIMARY KEY(`id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1624
+}

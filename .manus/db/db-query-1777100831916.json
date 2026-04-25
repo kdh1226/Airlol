@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `champions` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`name` varchar(100) NOT NULL,\n\t`wins` int NOT NULL DEFAULT 0,\n\t`losses` int NOT NULL DEFAULT 0,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `champions_id` PRIMARY KEY(`id`),\n\tCONSTRAINT `champions_name_unique` UNIQUE(`name`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway06.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3vSJiBVk9xuCvpz.root --database Sx8KwPTwqdiAXxUu5eKWSU --execute CREATE TABLE `champions` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`name` varchar(100) NOT NULL,\n\t`wins` int NOT NULL DEFAULT 0,\n\t`losses` int NOT NULL DEFAULT 0,\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `champions_id` PRIMARY KEY(`id`),\n\tCONSTRAINT `champions_name_unique` UNIQUE(`name`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2554
+}
