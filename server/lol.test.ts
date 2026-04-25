@@ -409,6 +409,37 @@ describe("PS Score Ranking", () => {
   });
 });
 
+describe("Dashboard Top Players PS Score", () => {
+  it("should return top players sorted by PS score in dashboard summary", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.dashboard.summary();
+    
+    expect(result).toBeDefined();
+    expect(Array.isArray(result.topPlayers)).toBe(true);
+    if (result.topPlayers.length >= 2) {
+      for (let i = 0; i < result.topPlayers.length - 1; i++) {
+        const scoreA = Number((result.topPlayers[i] as any).psScore) || 0;
+        const scoreB = Number((result.topPlayers[i + 1] as any).psScore) || 0;
+        if (scoreA !== scoreB) {
+          expect(scoreA).toBeGreaterThanOrEqual(scoreB);
+        }
+      }
+    }
+  });
+
+  it("should include psScore field in top players", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.dashboard.summary();
+    
+    if (result.topPlayers.length > 0) {
+      const topPlayer = result.topPlayers[0] as any;
+      expect(topPlayer).toHaveProperty("psScore");
+    }
+  });
+});
+
 describe("Sync Service", () => {
   it("should export parseCSV function correctly", async () => {
     const { parseCSV } = await import("./syncService");

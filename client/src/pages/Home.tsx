@@ -97,10 +97,10 @@ export default function Home() {
                       <p className="text-xs text-muted-foreground">{player.wins}승 {player.losses}패</p>
                     </div>
                     <div className="text-right">
-                      <p className={`font-bold text-sm ${winRate >= 60 ? "text-win" : winRate >= 50 ? "text-primary" : "text-lose"}`}>
-                        {winRate.toFixed(1)}%
+                      <p className="font-bold text-sm text-primary">
+                        {Number((player as any).psScore) > 0 ? `${Number((player as any).psScore).toFixed(1)}점` : "-"}
                       </p>
-                      <p className="text-xs text-muted-foreground">{total}게임</p>
+                      <p className="text-xs text-muted-foreground">{player.wins}승 {player.losses}패</p>
                     </div>
                     <div className="w-24 hidden sm:block">
                       <div className="stat-bar">

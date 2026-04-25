@@ -352,7 +352,13 @@ export async function getDashboardSummary() {
       seriesTotal: p.seriesWins + p.seriesLosses,
       seriesWinRate: p.seriesWins + p.seriesLosses > 0 ? (p.seriesWins / (p.seriesWins + p.seriesLosses)) * 100 : 0,
     }))
-    .sort((a, b) => b.winRate !== a.winRate ? b.winRate - a.winRate : b.total - a.total)
+    .sort((a, b) => {
+      const aScore = Number(a.psScore) || 0;
+      const bScore = Number(b.psScore) || 0;
+      if (bScore !== aScore) return bScore - aScore;
+      if (b.winRate !== a.winRate) return b.winRate - a.winRate;
+      return b.total - a.total;
+    })
     .slice(0, 5);
   const recentMatches = await db.select().from(matches).orderBy(desc(matches.id)).limit(5);
   return {
