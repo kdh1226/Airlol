@@ -1,4 +1,6 @@
-import { upsertPlayerBulk, upsertChampionBulk, createSyncLog, upsertPlayerPersonalStats } from "./db";
+import { upsertPlayerBulk, upsertChampionBulk, createSyncLog, upsertPlayerPersonalStats, getDb } from "./db";
+import { players } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 
 const SPREADSHEET_ID = "1bUqPV6mcmbo3XlSD7kOg2JR_jexMk1rYspTrl7otNWA";
 
@@ -252,6 +254,22 @@ export async function syncFromSpreadsheet(sheetUrl?: string): Promise<{
       );
     }
 
+    // 3.5 Fetch PS scores from tier sheet (gid=98107530)
+    const psScoreMap: Record<string, number> = {};
+    try {
+      const tierCsv = await fetchCSV("98107530");
+      const tierRows = parseCSV(tierCsv);
+      for (const row of tierRows) {
+        const name = (row[1] || "").trim();
+        const score = parseFloat(row[2]);
+        if (name && !isNaN(score) && score > 0) {
+          psScoreMap[name] = score;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch tier sheet for PS scores:", e);
+    }
+
     // 4. Merge series data into player data
     for (const p of playerData) {
       if (seriesMap[p.name]) {
@@ -269,6 +287,20 @@ export async function syncFromSpreadsheet(sheetUrl?: string): Promise<{
     }
     if (championData.length > 0) {
       championsCount = await upsertChampionBulk(championData);
+    }
+
+    // 4.5 Update PS scores
+    if (Object.keys(psScoreMap).length > 0) {
+      const db = await getDb();
+      if (db) {
+        for (const [name, score] of Object.entries(psScoreMap)) {
+          try {
+            await db.update(players).set({ psScore: score.toFixed(2) }).where(eq(players.name, name));
+          } catch (e) {
+            // Skip failed updates
+          }
+        }
+      }
     }
 
     // 5. Upsert personal stats

@@ -373,6 +373,42 @@ describe("Player Detail API", () => {
   });
 });
 
+describe("PS Score Ranking", () => {
+  it("should return player ranking sorted by PS score descending", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.player.ranking();
+    
+    expect(Array.isArray(result)).toBe(true);
+    if (result.length > 0) {
+      const firstPlayer = result[0];
+      expect(firstPlayer).toHaveProperty("psScore");
+    }
+    // Verify PS score descending order
+    if (result.length >= 2) {
+      for (let i = 0; i < result.length - 1; i++) {
+        const scoreA = Number(result[i].psScore) || 0;
+        const scoreB = Number(result[i + 1].psScore) || 0;
+        if (scoreA !== scoreB) {
+          expect(scoreA).toBeGreaterThanOrEqual(scoreB);
+        }
+      }
+    }
+  });
+
+  it("should include PS score in player detail", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.player.detail({ name: "김도형" });
+    
+    if (result) {
+      expect(result).toHaveProperty("psScore");
+      const score = Number(result.psScore) || 0;
+      expect(score).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe("Sync Service", () => {
   it("should export parseCSV function correctly", async () => {
     const { parseCSV } = await import("./syncService");

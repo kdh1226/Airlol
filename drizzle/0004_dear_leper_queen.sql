@@ -1,0 +1,1 @@
+ALTER TABLE `players` ADD `psScore` decimal(6,2) DEFAULT '0';

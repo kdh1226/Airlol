@@ -81,6 +81,9 @@ export async function getPlayerRanking() {
       seriesWinRate: p.seriesWins + p.seriesLosses > 0 ? (p.seriesWins / (p.seriesWins + p.seriesLosses)) * 100 : 0,
     }))
     .sort((a, b) => {
+      const aScore = Number(a.psScore) || 0;
+      const bScore = Number(b.psScore) || 0;
+      if (bScore !== aScore) return bScore - aScore;
       if (b.winRate !== a.winRate) return b.winRate - a.winRate;
       return b.total - a.total;
     });

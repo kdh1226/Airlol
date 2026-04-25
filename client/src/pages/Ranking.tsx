@@ -11,7 +11,7 @@ export default function Ranking() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gold-gradient">순위 랭킹</h1>
-          <p className="text-muted-foreground mt-1">승률 기준 플레이어 순위</p>
+          <p className="text-muted-foreground mt-1">PS 점수 기준 플레이어 순위</p>
         </div>
         <Card className="bg-card border-border animate-pulse"><CardContent className="p-6"><div className="h-64 bg-muted rounded" /></CardContent></Card>
       </div>
@@ -22,7 +22,7 @@ export default function Ranking() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gold-gradient">순위 랭킹</h1>
-        <p className="text-muted-foreground mt-1">승률 기준 플레이어 순위</p>
+        <p className="text-muted-foreground mt-1">객관적 티어표 (PS 점수) 기준 순위</p>
       </div>
 
       {/* Top 3 Podium */}
@@ -32,6 +32,7 @@ export default function Ranking() {
             const player = players[idx];
             if (!player) return null;
             const isFirst = idx === 0;
+            const psScore = Number(player.psScore) || 0;
             return (
               <div key={player.id} className={`flex flex-col items-center ${isFirst ? "order-1 -mt-4" : idx === 1 ? "order-0 mt-4" : "order-2 mt-4"}`}>
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 ${
@@ -42,10 +43,10 @@ export default function Ranking() {
                   </span>
                 </div>
                 <Link href={`/player/${encodeURIComponent(player.name)}`} className={`font-bold text-center hover:text-gold transition-colors ${isFirst ? "text-primary text-lg" : "text-foreground"}`}>{player.name}</Link>
-                <p className={`text-sm font-semibold ${player.winRate >= 60 ? "text-win" : player.winRate >= 50 ? "text-primary" : "text-lose"}`}>
-                  {player.winRate.toFixed(1)}%
+                <p className={`text-sm font-semibold text-primary`}>
+                  {psScore.toFixed(1)}점
                 </p>
-                <p className="text-xs text-muted-foreground">{player.wins}승 {player.losses}패</p>
+                <p className="text-xs text-muted-foreground">{player.wins}승 {player.losses}패 ({player.winRate.toFixed(1)}%)</p>
               </div>
             );
           })}
@@ -68,6 +69,7 @@ export default function Ranking() {
                   <tr className="border-b border-border">
                     <th className="text-left py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap">순위</th>
                     <th className="text-left py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap min-w-[80px]">이름</th>
+                    <th className="text-center py-3 px-3 text-sm font-semibold text-primary whitespace-nowrap">PS 점수</th>
                     <th className="text-center py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap">포지션</th>
                     <th className="text-center py-3 px-3 text-sm font-semibold text-win whitespace-nowrap">승</th>
                     <th className="text-center py-3 px-3 text-sm font-semibold text-lose whitespace-nowrap">패</th>
@@ -75,73 +77,69 @@ export default function Ranking() {
                     <th className="text-center py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap">승률</th>
                     <th className="text-center py-3 px-3 text-sm font-semibold text-lol-blue-light whitespace-nowrap">시리즈</th>
                     <th className="text-center py-3 px-3 text-sm font-semibold text-lol-blue-light whitespace-nowrap">시리즈 승률</th>
-                    <th className="text-left py-3 px-3 text-sm font-semibold text-muted-foreground w-28 hidden lg:table-cell whitespace-nowrap">승률 바</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {players.map((player, idx) => (
-                    <tr key={player.id} className="border-b border-border/50 hover:bg-secondary/50 transition-colors">
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold ${
-                          idx === 0 ? "bg-primary/20 text-primary" :
-                          idx === 1 ? "bg-muted text-foreground" :
-                          idx === 2 ? "bg-muted text-foreground" :
-                          "text-muted-foreground"
-                        }`}>
-                          {idx + 1}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 font-medium text-foreground whitespace-nowrap">
-                        <Link href={`/player/${encodeURIComponent(player.name)}`} className="hover:text-gold transition-colors underline-offset-2 hover:underline">
-                          {player.name}
-                        </Link>
-                      </td>
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        {player.mainPosition ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-lol-blue/10 text-lol-blue-light">{player.mainPosition}</span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-center text-win font-medium whitespace-nowrap">{player.wins}</td>
-                      <td className="py-3 px-3 text-center text-lose font-medium whitespace-nowrap">{player.losses}</td>
-                      <td className="py-3 px-3 text-center text-muted-foreground whitespace-nowrap">{player.total}</td>
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        <span className={`font-bold ${player.winRate >= 60 ? "text-win" : player.winRate >= 50 ? "text-primary" : "text-lose"}`}>
-                          {player.winRate.toFixed(1)}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        {player.seriesTotal > 0 ? (
-                          <span className="text-sm text-lol-blue-light">
-                            {player.seriesWins}승 {player.seriesLosses}패
+                  {players.map((player, idx) => {
+                    const psScore = Number(player.psScore) || 0;
+                    return (
+                      <tr key={player.id} className="border-b border-border/50 hover:bg-secondary/50 transition-colors">
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold ${
+                            idx === 0 ? "bg-primary/20 text-primary" :
+                            idx === 1 ? "bg-muted text-foreground" :
+                            idx === 2 ? "bg-muted text-foreground" :
+                            "text-muted-foreground"
+                          }`}>
+                            {idx + 1}
                           </span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        {player.seriesTotal > 0 ? (
-                          <span className={`font-bold text-sm ${player.seriesWinRate >= 60 ? "text-win" : player.seriesWinRate >= 50 ? "text-lol-blue-light" : "text-lose"}`}>
-                            {player.seriesWinRate.toFixed(1)}%
+                        </td>
+                        <td className="py-3 px-3 font-medium text-foreground whitespace-nowrap">
+                          <Link href={`/player/${encodeURIComponent(player.name)}`} className="hover:text-gold transition-colors underline-offset-2 hover:underline">
+                            {player.name}
+                          </Link>
+                        </td>
+                        <td className="py-3 px-3 text-center whitespace-nowrap">
+                          <span className={`font-bold ${psScore >= 110 ? "text-primary" : psScore >= 100 ? "text-win" : psScore >= 90 ? "text-foreground" : psScore >= 80 ? "text-muted-foreground" : "text-lose"}`}>
+                            {psScore.toFixed(1)}
                           </span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">-</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 hidden lg:table-cell">
-                        <div className="stat-bar">
-                          <div
-                            className="stat-bar-fill"
-                            style={{
-                              width: `${player.winRate}%`,
-                              background: player.winRate >= 60 ? "oklch(0.65 0.18 155)" : player.winRate >= 50 ? "oklch(0.82 0.12 85)" : "oklch(0.6 0.2 25)",
-                            }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-3 px-3 text-center whitespace-nowrap">
+                          {player.mainPosition ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-lol-blue/10 text-lol-blue-light">{player.mainPosition}</span>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-center text-win font-medium whitespace-nowrap">{player.wins}</td>
+                        <td className="py-3 px-3 text-center text-lose font-medium whitespace-nowrap">{player.losses}</td>
+                        <td className="py-3 px-3 text-center text-muted-foreground whitespace-nowrap">{player.total}</td>
+                        <td className="py-3 px-3 text-center whitespace-nowrap">
+                          <span className={`font-bold ${player.winRate >= 60 ? "text-win" : player.winRate >= 50 ? "text-primary" : "text-lose"}`}>
+                            {player.winRate.toFixed(1)}%
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center whitespace-nowrap">
+                          {player.seriesTotal > 0 ? (
+                            <span className="text-sm text-lol-blue-light">
+                              {player.seriesWins}승 {player.seriesLosses}패
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-center whitespace-nowrap">
+                          {player.seriesTotal > 0 ? (
+                            <span className={`font-bold text-sm ${player.seriesWinRate >= 60 ? "text-win" : player.seriesWinRate >= 50 ? "text-lol-blue-light" : "text-lose"}`}>
+                              {player.seriesWinRate.toFixed(1)}%
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
