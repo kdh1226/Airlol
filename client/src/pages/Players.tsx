@@ -9,11 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Users, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 const POSITIONS = ["탑", "정글", "미드", "원딜", "서포터", "필"];
 
 export default function Players() {
   const { isAdmin } = useAdminAuth();
+  const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const { data: players, isLoading } = trpc.player.list.useQuery();
   const createMutation = trpc.player.create.useMutation({
@@ -181,7 +183,7 @@ export default function Players() {
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="font-semibold text-foreground text-lg">{player.name}</h3>
+                      <h3 className="font-semibold text-foreground text-lg cursor-pointer hover:text-primary transition-colors" onClick={() => setLocation(`/player/${encodeURIComponent(player.name)}`)}>{player.name}</h3>
                       {player.mainPosition && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-lol-blue/10 text-lol-blue-light mt-1 inline-block">{player.mainPosition}</span>
                       )}

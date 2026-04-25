@@ -84,7 +84,7 @@ export default function Home() {
                 const total = player.wins + player.losses;
                 const winRate = total > 0 ? (player.wins / total) * 100 : 0;
                 return (
-                  <div key={player.id} className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
+                  <div key={player.id} className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer" onClick={() => setLocation(`/player/${encodeURIComponent(player.name)}`)}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
                       idx === 0 ? "bg-primary/20 text-primary" :
                       idx === 1 ? "bg-muted text-muted-foreground" :
