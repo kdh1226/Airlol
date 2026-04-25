@@ -62,23 +62,25 @@ export default function Ranking() {
         <CardContent>
           {players && players.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-auto">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground w-16">순위</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">이름</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground">포지션</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-win">승</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-lose">패</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground">총 게임</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground">승률</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground w-32 hidden md:table-cell">승률 바</th>
+                    <th className="text-left py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap">순위</th>
+                    <th className="text-left py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap min-w-[80px]">이름</th>
+                    <th className="text-center py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap">포지션</th>
+                    <th className="text-center py-3 px-3 text-sm font-semibold text-win whitespace-nowrap">승</th>
+                    <th className="text-center py-3 px-3 text-sm font-semibold text-lose whitespace-nowrap">패</th>
+                    <th className="text-center py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap">판수</th>
+                    <th className="text-center py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap">승률</th>
+                    <th className="text-center py-3 px-3 text-sm font-semibold text-lol-blue-light whitespace-nowrap">시리즈</th>
+                    <th className="text-center py-3 px-3 text-sm font-semibold text-lol-blue-light whitespace-nowrap">시리즈 승률</th>
+                    <th className="text-left py-3 px-3 text-sm font-semibold text-muted-foreground w-28 hidden lg:table-cell whitespace-nowrap">승률 바</th>
                   </tr>
                 </thead>
                 <tbody>
                   {players.map((player, idx) => (
                     <tr key={player.id} className="border-b border-border/50 hover:bg-secondary/50 transition-colors">
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-3 whitespace-nowrap">
                         <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold ${
                           idx === 0 ? "bg-primary/20 text-primary" :
                           idx === 1 ? "bg-muted text-foreground" :
@@ -88,23 +90,41 @@ export default function Ranking() {
                           {idx + 1}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-medium text-foreground">{player.name}</td>
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-3 px-3 font-medium text-foreground whitespace-nowrap">{player.name}</td>
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
                         {player.mainPosition ? (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-lol-blue/10 text-lol-blue-light">{player.mainPosition}</span>
                         ) : (
                           <span className="text-muted-foreground text-xs">-</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-center text-win font-medium">{player.wins}</td>
-                      <td className="py-3 px-4 text-center text-lose font-medium">{player.losses}</td>
-                      <td className="py-3 px-4 text-center text-muted-foreground">{player.total}</td>
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-3 px-3 text-center text-win font-medium whitespace-nowrap">{player.wins}</td>
+                      <td className="py-3 px-3 text-center text-lose font-medium whitespace-nowrap">{player.losses}</td>
+                      <td className="py-3 px-3 text-center text-muted-foreground whitespace-nowrap">{player.total}</td>
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
                         <span className={`font-bold ${player.winRate >= 60 ? "text-win" : player.winRate >= 50 ? "text-primary" : "text-lose"}`}>
                           {player.winRate.toFixed(1)}%
                         </span>
                       </td>
-                      <td className="py-3 px-4 hidden md:table-cell">
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        {player.seriesTotal > 0 ? (
+                          <span className="text-sm text-lol-blue-light">
+                            {player.seriesWins}승 {player.seriesLosses}패
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        {player.seriesTotal > 0 ? (
+                          <span className={`font-bold text-sm ${player.seriesWinRate >= 60 ? "text-win" : player.seriesWinRate >= 50 ? "text-lol-blue-light" : "text-lose"}`}>
+                            {player.seriesWinRate.toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 hidden lg:table-cell">
                         <div className="stat-bar">
                           <div
                             className="stat-bar-fill"

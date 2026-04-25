@@ -41,6 +41,8 @@ export const appRouter = router({
         name: z.string().min(1),
         wins: z.number().int().min(0).optional(),
         losses: z.number().int().min(0).optional(),
+        seriesWins: z.number().int().min(0).optional(),
+        seriesLosses: z.number().int().min(0).optional(),
         mainPosition: z.string().optional(),
         memo: z.string().optional(),
       }))
@@ -53,6 +55,8 @@ export const appRouter = router({
         name: z.string().min(1).optional(),
         wins: z.number().int().min(0).optional(),
         losses: z.number().int().min(0).optional(),
+        seriesWins: z.number().int().min(0).optional(),
+        seriesLosses: z.number().int().min(0).optional(),
         mainPosition: z.string().optional(),
         memo: z.string().optional(),
       }))

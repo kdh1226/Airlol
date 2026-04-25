@@ -36,10 +36,12 @@ export default function Players() {
   const [name, setName] = useState("");
   const [wins, setWins] = useState(0);
   const [losses, setLosses] = useState(0);
+  const [seriesWins, setSeriesWins] = useState(0);
+  const [seriesLosses, setSeriesLosses] = useState(0);
   const [mainPosition, setMainPosition] = useState("");
   const [memo, setMemo] = useState("");
 
-  const resetForm = () => { setName(""); setWins(0); setLosses(0); setMainPosition(""); setMemo(""); };
+  const resetForm = () => { setName(""); setWins(0); setLosses(0); setSeriesWins(0); setSeriesLosses(0); setMainPosition(""); setMemo(""); };
 
   const filteredPlayers = useMemo(() => {
     if (!players) return [];
@@ -52,19 +54,21 @@ export default function Players() {
     setName(player.name);
     setWins(player.wins);
     setLosses(player.losses);
+    setSeriesWins(player.seriesWins || 0);
+    setSeriesLosses(player.seriesLosses || 0);
     setMainPosition(player.mainPosition || "");
     setMemo(player.memo || "");
   };
 
   const handleCreate = () => {
     if (!name.trim()) { toast.error("이름을 입력해주세요."); return; }
-    createMutation.mutate({ name: name.trim(), wins, losses, mainPosition: mainPosition || undefined, memo: memo || undefined });
+    createMutation.mutate({ name: name.trim(), wins, losses, seriesWins, seriesLosses, mainPosition: mainPosition || undefined, memo: memo || undefined });
   };
 
   const handleUpdate = () => {
     if (editId === null) return;
     if (!name.trim()) { toast.error("이름을 입력해주세요."); return; }
-    updateMutation.mutate({ id: editId, name: name.trim(), wins, losses, mainPosition: mainPosition || undefined, memo: memo || undefined });
+    updateMutation.mutate({ id: editId, name: name.trim(), wins, losses, seriesWins, seriesLosses, mainPosition: mainPosition || undefined, memo: memo || undefined });
   };
 
   return (
@@ -90,6 +94,10 @@ export default function Players() {
                 <div className="grid grid-cols-2 gap-4">
                   <div><Label className="text-foreground">승</Label><Input type="number" min={0} value={wins} onChange={e => setWins(Number(e.target.value))} className="bg-input border-border text-foreground mt-1" /></div>
                   <div><Label className="text-foreground">패</Label><Input type="number" min={0} value={losses} onChange={e => setLosses(Number(e.target.value))} className="bg-input border-border text-foreground mt-1" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label className="text-foreground">시리즈 승</Label><Input type="number" min={0} value={seriesWins} onChange={e => setSeriesWins(Number(e.target.value))} className="bg-input border-border text-foreground mt-1" /></div>
+                  <div><Label className="text-foreground">시리즈 패</Label><Input type="number" min={0} value={seriesLosses} onChange={e => setSeriesLosses(Number(e.target.value))} className="bg-input border-border text-foreground mt-1" /></div>
                 </div>
                 <div>
                   <Label className="text-foreground">주 포지션</Label>
@@ -149,6 +157,10 @@ export default function Players() {
                       <Input type="number" min={0} value={wins} onChange={e => setWins(Number(e.target.value))} placeholder="승" className="bg-input border-border text-foreground" />
                       <Input type="number" min={0} value={losses} onChange={e => setLosses(Number(e.target.value))} placeholder="패" className="bg-input border-border text-foreground" />
                     </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input type="number" min={0} value={seriesWins} onChange={e => setSeriesWins(Number(e.target.value))} placeholder="시리즈 승" className="bg-input border-border text-foreground" />
+                      <Input type="number" min={0} value={seriesLosses} onChange={e => setSeriesLosses(Number(e.target.value))} placeholder="시리즈 패" className="bg-input border-border text-foreground" />
+                    </div>
                     <Select value={mainPosition} onValueChange={setMainPosition}>
                       <SelectTrigger className="bg-input border-border text-foreground"><SelectValue placeholder="포지션" /></SelectTrigger>
                       <SelectContent className="bg-popover border-border">
@@ -193,6 +205,16 @@ export default function Players() {
                       {winRate.toFixed(1)}%
                     </span>
                   </div>
+                  {(player.seriesWins > 0 || player.seriesLosses > 0) && (
+                    <div className="flex items-center gap-2 text-xs mt-1.5">
+                      <span className="text-lol-blue-light font-medium">시리즈</span>
+                      <span className="text-win">{player.seriesWins}승</span>
+                      <span className="text-lose">{player.seriesLosses}패</span>
+                      <span className={`font-bold ${(player.seriesWins / (player.seriesWins + player.seriesLosses)) * 100 >= 50 ? "text-lol-blue-light" : "text-lose"}`}>
+                        {((player.seriesWins / (player.seriesWins + player.seriesLosses)) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
                   <div className="stat-bar mt-2">
                     <div
                       className="stat-bar-fill"

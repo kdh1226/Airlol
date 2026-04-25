@@ -75,6 +75,25 @@ describe("Player API", () => {
     expect(Array.isArray(result)).toBe(true);
   });
 
+  it("should return player ranking with series stats fields", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.player.ranking();
+    
+    expect(Array.isArray(result)).toBe(true);
+    if (result.length > 0) {
+      const player = result[0];
+      expect(player).toHaveProperty("seriesWins");
+      expect(player).toHaveProperty("seriesLosses");
+      expect(player).toHaveProperty("seriesTotal");
+      expect(player).toHaveProperty("seriesWinRate");
+      expect(typeof player.seriesWins).toBe("number");
+      expect(typeof player.seriesLosses).toBe("number");
+      expect(typeof player.seriesTotal).toBe("number");
+      expect(typeof player.seriesWinRate).toBe("number");
+    }
+  });
+
   it("should create a player with authenticated access", async () => {
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
@@ -87,6 +106,24 @@ describe("Player API", () => {
     });
     
     expect(result).toBeDefined();
+  });
+
+  it("should create a player with series stats", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+    const uniqueName = `시리즈테스트_${Date.now()}`;
+    const result = await caller.player.create({
+      name: uniqueName,
+      wins: 20,
+      losses: 10,
+      seriesWins: 8,
+      seriesLosses: 4,
+      mainPosition: "정글",
+    });
+    
+    expect(result).toBeDefined();
+    expect(result.seriesWins).toBe(8);
+    expect(result.seriesLosses).toBe(4);
   });
 
   it("should reject player creation without auth", async () => {
@@ -112,12 +149,19 @@ describe("Champion API", () => {
     expect(Array.isArray(result)).toBe(true);
   });
 
-  it("should return champion ranking with public access", async () => {
+  it("should return champion ranking sorted by total games descending", async () => {
     const ctx = createPublicContext();
     const caller = appRouter.createCaller(ctx);
     const result = await caller.champion.ranking();
     
     expect(Array.isArray(result)).toBe(true);
+    if (result.length >= 2) {
+      for (let i = 0; i < result.length - 1; i++) {
+        if (result[i].total !== result[i + 1].total) {
+          expect(result[i].total).toBeGreaterThanOrEqual(result[i + 1].total);
+        }
+      }
+    }
   });
 
   it("should create a champion with authenticated access", async () => {

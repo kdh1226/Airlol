@@ -114,16 +114,16 @@ export default function Champions() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-auto">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground w-16">#</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">챔피언</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-win">승</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-lose">패</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground">총 게임</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground">승률</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground w-32 hidden md:table-cell">승률 바</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground whitespace-nowrap">#</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground whitespace-nowrap min-w-[100px]">챔피언</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-win whitespace-nowrap">승</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-lose whitespace-nowrap">패</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground whitespace-nowrap">총 게임</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground whitespace-nowrap">승률</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground w-32 hidden md:table-cell whitespace-nowrap">승률 바</th>
                     {isAdmin && <th className="text-right py-3 px-4 text-sm font-semibold text-muted-foreground w-20">관리</th>}
                   </tr>
                 </thead>
@@ -151,11 +151,11 @@ export default function Champions() {
                     return (
                       <tr key={champ.id} className="border-b border-border/50 hover:bg-secondary/50 transition-colors group">
                         <td className="py-3 px-4 text-muted-foreground">{idx + 1}</td>
-                        <td className="py-3 px-4 font-medium text-foreground">{champ.name}</td>
-                        <td className="py-3 px-4 text-center text-win font-medium">{champ.wins}</td>
-                        <td className="py-3 px-4 text-center text-lose font-medium">{champ.losses}</td>
-                        <td className="py-3 px-4 text-center text-muted-foreground">{champ.total}</td>
-                        <td className="py-3 px-4 text-center">
+                        <td className="py-3 px-4 font-medium text-foreground whitespace-nowrap">{champ.name}</td>
+                        <td className="py-3 px-4 text-center text-win font-medium whitespace-nowrap">{champ.wins}</td>
+                        <td className="py-3 px-4 text-center text-lose font-medium whitespace-nowrap">{champ.losses}</td>
+                        <td className="py-3 px-4 text-center text-muted-foreground whitespace-nowrap">{champ.total}</td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
                           <span className={`font-bold ${champ.winRate >= 60 ? "text-win" : champ.winRate >= 50 ? "text-primary" : "text-lose"}`}>
                             {champ.winRate.toFixed(1)}%
                           </span>

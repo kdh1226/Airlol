@@ -74,6 +74,8 @@ export async function getPlayerRanking() {
       ...p,
       total: p.wins + p.losses,
       winRate: p.wins + p.losses > 0 ? (p.wins / (p.wins + p.losses)) * 100 : 0,
+      seriesTotal: p.seriesWins + p.seriesLosses,
+      seriesWinRate: p.seriesWins + p.seriesLosses > 0 ? (p.seriesWins / (p.seriesWins + p.seriesLosses)) * 100 : 0,
     }))
     .sort((a, b) => {
       if (b.winRate !== a.winRate) return b.winRate - a.winRate;
@@ -81,13 +83,15 @@ export async function getPlayerRanking() {
     });
 }
 
-export async function createPlayer(data: { name: string; wins?: number; losses?: number; mainPosition?: string; memo?: string }) {
+export async function createPlayer(data: { name: string; wins?: number; losses?: number; seriesWins?: number; seriesLosses?: number; mainPosition?: string; memo?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.insert(players).values({
     name: data.name,
     wins: data.wins ?? 0,
     losses: data.losses ?? 0,
+    seriesWins: data.seriesWins ?? 0,
+    seriesLosses: data.seriesLosses ?? 0,
     mainPosition: data.mainPosition ?? null,
     memo: data.memo ?? null,
   });
@@ -95,13 +99,15 @@ export async function createPlayer(data: { name: string; wins?: number; losses?:
   return result[0];
 }
 
-export async function updatePlayer(id: number, data: { name?: string; wins?: number; losses?: number; mainPosition?: string; memo?: string }) {
+export async function updatePlayer(id: number, data: { name?: string; wins?: number; losses?: number; seriesWins?: number; seriesLosses?: number; mainPosition?: string; memo?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const updateData: Record<string, unknown> = {};
   if (data.name !== undefined) updateData.name = data.name;
   if (data.wins !== undefined) updateData.wins = data.wins;
   if (data.losses !== undefined) updateData.losses = data.losses;
+  if (data.seriesWins !== undefined) updateData.seriesWins = data.seriesWins;
+  if (data.seriesLosses !== undefined) updateData.seriesLosses = data.seriesLosses;
   if (data.mainPosition !== undefined) updateData.mainPosition = data.mainPosition;
   if (data.memo !== undefined) updateData.memo = data.memo;
   await db.update(players).set(updateData).where(eq(players.id, id));
@@ -134,8 +140,8 @@ export async function getChampionRanking() {
       winRate: c.wins + c.losses > 0 ? (c.wins / (c.wins + c.losses)) * 100 : 0,
     }))
     .sort((a, b) => {
-      if (b.winRate !== a.winRate) return b.winRate - a.winRate;
-      return b.total - a.total;
+      if (b.total !== a.total) return b.total - a.total;
+      return b.winRate - a.winRate;
     });
 }
 
@@ -230,13 +236,17 @@ export async function deleteMatch(id: number) {
 }
 
 // ─── Sync helpers ───
-export async function upsertPlayerBulk(data: { name: string; wins: number; losses: number }[]) {
+export async function upsertPlayerBulk(data: { name: string; wins: number; losses: number; seriesWins?: number; seriesLosses?: number }[]) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   let count = 0;
   for (const p of data) {
-    await db.insert(players).values({ name: p.name, wins: p.wins, losses: p.losses })
-      .onDuplicateKeyUpdate({ set: { wins: p.wins, losses: p.losses } });
+    const values: any = { name: p.name, wins: p.wins, losses: p.losses };
+    const updateSet: any = { wins: p.wins, losses: p.losses };
+    if (p.seriesWins !== undefined) { values.seriesWins = p.seriesWins; updateSet.seriesWins = p.seriesWins; }
+    if (p.seriesLosses !== undefined) { values.seriesLosses = p.seriesLosses; updateSet.seriesLosses = p.seriesLosses; }
+    await db.insert(players).values(values)
+      .onDuplicateKeyUpdate({ set: updateSet });
     count++;
   }
   return count;
@@ -282,7 +292,13 @@ export async function getDashboardSummary() {
   const [matchCount] = await db.select({ count: sql<number>`count(*)` }).from(matches);
   const allPlayers = await db.select().from(players);
   const topPlayers = allPlayers
-    .map(p => ({ ...p, total: p.wins + p.losses, winRate: p.wins + p.losses > 0 ? (p.wins / (p.wins + p.losses)) * 100 : 0 }))
+    .map(p => ({
+      ...p,
+      total: p.wins + p.losses,
+      winRate: p.wins + p.losses > 0 ? (p.wins / (p.wins + p.losses)) * 100 : 0,
+      seriesTotal: p.seriesWins + p.seriesLosses,
+      seriesWinRate: p.seriesWins + p.seriesLosses > 0 ? (p.seriesWins / (p.seriesWins + p.seriesLosses)) * 100 : 0,
+    }))
     .sort((a, b) => b.winRate !== a.winRate ? b.winRate - a.winRate : b.total - a.total)
     .slice(0, 5);
   const recentMatches = await db.select().from(matches).orderBy(desc(matches.id)).limit(5);

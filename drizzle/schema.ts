@@ -26,6 +26,8 @@ export const players = mysqlTable("players", {
   name: varchar("name", { length: 100 }).notNull().unique(),
   wins: int("wins").default(0).notNull(),
   losses: int("losses").default(0).notNull(),
+  seriesWins: int("seriesWins").default(0).notNull(),
+  seriesLosses: int("seriesLosses").default(0).notNull(),
   mainPosition: varchar("mainPosition", { length: 50 }),
   memo: text("memo"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
