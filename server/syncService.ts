@@ -180,63 +180,32 @@ export async function syncFromSpreadsheet(sheetUrl?: string): Promise<{
     const playerData: { name: string; wins: number; losses: number; seriesWins?: number; seriesLosses?: number }[] = [];
     const championData: { name: string; wins: number; losses: number }[] = [];
 
-    let inChampionSection = false;
+    // Parse champion data from col14-16 (right side of main sheet)
+    // Note: col14 is champion name, col15 is wins, col16 is losses
     for (const row of rows) {
-      if (row[0] && row[0].includes("챔피언별 승률")) {
-        inChampionSection = true;
-        continue;
-      }
-
-      if (inChampionSection && row[0] && row[0].trim()) {
-        const wins = parseInt(row[1]) || 0;
-        const losses = parseInt(row[2]) || 0;
-        if (wins > 0 || losses > 0) {
-          championData.push({ name: row[0].trim(), wins, losses });
-        }
-      }
-
-      // Player data from right side columns (index 14-16)
       if (row.length > 16 && row[14] && row[14].trim()) {
+        const name = row[14].trim();
+        // Skip headers
+        if (name === "에어라인 롤내전" || name === "챔피언별 승률") continue;
         const wins = parseInt(row[15]) || 0;
         const losses = parseInt(row[16]) || 0;
         if (wins > 0 || losses > 0) {
-          playerData.push({ name: row[14].trim(), wins, losses });
+          championData.push({ name, wins, losses });
         }
       }
     }
 
-    // 2. Fetch individual sheets for series records
+    // 2. Fetch individual sheets for player data (total wins/losses, series, personal stats)
     const seriesMap: Record<string, { seriesWins: number; seriesLosses: number }> = {};
-
-    const gids = Object.keys(PLAYER_SHEET_GIDS);
-    // Fetch in batches of 5 to avoid rate limiting
-    for (let i = 0; i < gids.length; i += 5) {
-      const batch = gids.slice(i, i + 5);
-      const results = await Promise.allSettled(
-        batch.map(async (gid) => {
-          const csv = await fetchCSV(gid);
-          const sheetRows = parseCSV(csv);
-          const playerName = PLAYER_SHEET_GIDS[gid];
-
-          for (const row of sheetRows) {
-            if (row[0] && row[0].includes("시리즈")) {
-              const wins = parseInt(row[1]) || 0;
-              const losses = parseInt(row[2]) || 0;
-              seriesMap[playerName] = { seriesWins: wins, seriesLosses: losses };
-              break;
-            }
-          }
-        })
-      );
-    }
-
-    // 3. Parse personal stats from individual sheets
+    const totalGameMap: Record<string, { wins: number; losses: number }> = {};
     const personalStatsMap: Record<string, {
       positions: { position: string; wins: number; losses: number }[];
       matchups: { position: string; opponentName: string; wins: number; losses: number }[];
       champions: { position: string; championName: string; wins: number; losses: number }[];
     }> = {};
 
+    const gids = Object.keys(PLAYER_SHEET_GIDS);
+    // Fetch in batches of 5 to avoid rate limiting
     for (let i = 0; i < gids.length; i += 5) {
       const batch = gids.slice(i, i + 5);
       await Promise.allSettled(
@@ -245,6 +214,23 @@ export async function syncFromSpreadsheet(sheetUrl?: string): Promise<{
             const csv = await fetchCSV(gid);
             const sheetRows = parseCSV(csv);
             const playerName = PLAYER_SHEET_GIDS[gid];
+
+            // Extract series and total game records
+            for (const row of sheetRows) {
+              const cell0 = (row[0] || "").trim();
+              if (cell0.includes("시리즈")) {
+                const wins = parseInt(row[1]) || 0;
+                const losses = parseInt(row[2]) || 0;
+                seriesMap[playerName] = { seriesWins: wins, seriesLosses: losses };
+              }
+              if (cell0.includes("총 게임 전적")) {
+                const wins = parseInt(row[1]) || 0;
+                const losses = parseInt(row[2]) || 0;
+                totalGameMap[playerName] = { wins, losses };
+              }
+            }
+
+            // Parse personal stats (positions, matchups, champions)
             const stats = parsePersonalSheet(sheetRows);
             personalStatsMap[playerName] = stats;
           } catch (e) {
@@ -252,6 +238,18 @@ export async function syncFromSpreadsheet(sheetUrl?: string): Promise<{
           }
         })
       );
+    }
+
+    // Build playerData from individual sheets (NOT from main sheet col14 which is champion data)
+    for (const [name, totals] of Object.entries(totalGameMap)) {
+      const series = seriesMap[name];
+      playerData.push({
+        name,
+        wins: totals.wins,
+        losses: totals.losses,
+        seriesWins: series?.seriesWins,
+        seriesLosses: series?.seriesLosses,
+      });
     }
 
     // 3.5 Fetch PS scores from tier sheet (gid=98107530)
@@ -268,14 +266,6 @@ export async function syncFromSpreadsheet(sheetUrl?: string): Promise<{
       }
     } catch (e) {
       console.warn("Failed to fetch tier sheet for PS scores:", e);
-    }
-
-    // 4. Merge series data into player data
-    for (const p of playerData) {
-      if (seriesMap[p.name]) {
-        p.seriesWins = seriesMap[p.name].seriesWins;
-        p.seriesLosses = seriesMap[p.name].seriesLosses;
-      }
     }
 
     let playersCount = 0;
