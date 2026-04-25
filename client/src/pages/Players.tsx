@@ -211,7 +211,7 @@ export default function Players() {
                       <span className="text-lol-blue-light font-medium">시리즈</span>
                       <span className="text-win">{player.seriesWins}승</span>
                       <span className="text-lose">{player.seriesLosses}패</span>
-                      <span className={`font-bold ${(player.seriesWins / (player.seriesWins + player.seriesLosses)) * 100 >= 50 ? "text-lol-blue-light" : "text-lose"}`}>
+                      <span className={`font-bold ${(player.seriesWins / (player.seriesWins + player.seriesLosses)) * 100 >= 60 ? "text-win" : (player.seriesWins / (player.seriesWins + player.seriesLosses)) * 100 >= 50 ? "text-primary" : "text-lose"}`}>
                         {((player.seriesWins / (player.seriesWins + player.seriesLosses)) * 100).toFixed(1)}%
                       </span>
                     </div>

@@ -43,7 +43,7 @@ export default function Ranking() {
                   </span>
                 </div>
                 <Link href={`/player/${encodeURIComponent(player.name)}`} className={`font-bold text-center hover:text-gold transition-colors ${isFirst ? "text-primary text-lg" : "text-foreground"}`}>{player.name}</Link>
-                <p className={`text-sm font-semibold text-primary`}>
+                <p className={`text-sm font-semibold ${psScore >= 110 ? "text-win" : psScore >= 100 ? "text-primary" : psScore >= 90 ? "text-foreground" : "text-lose"}`}>
                   {psScore.toFixed(1)}점
                 </p>
                 <p className="text-xs text-muted-foreground">{player.wins}승 {player.losses}패 ({player.winRate.toFixed(1)}%)</p>
@@ -69,7 +69,7 @@ export default function Ranking() {
                   <tr className="border-b border-border">
                     <th className="text-left py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap">순위</th>
                     <th className="text-left py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap min-w-[80px]">이름</th>
-                    <th className="text-center py-3 px-3 text-sm font-semibold text-primary whitespace-nowrap">PS 점수</th>
+                    <th className="text-center py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap">PS 점수</th>
                     <th className="text-center py-3 px-3 text-sm font-semibold text-muted-foreground whitespace-nowrap">포지션</th>
                     <th className="text-center py-3 px-3 text-sm font-semibold text-win whitespace-nowrap">승</th>
                     <th className="text-center py-3 px-3 text-sm font-semibold text-lose whitespace-nowrap">패</th>
@@ -100,7 +100,7 @@ export default function Ranking() {
                           </Link>
                         </td>
                         <td className="py-3 px-3 text-center whitespace-nowrap">
-                          <span className={`font-bold ${psScore >= 110 ? "text-primary" : psScore >= 100 ? "text-win" : psScore >= 90 ? "text-foreground" : psScore >= 80 ? "text-muted-foreground" : "text-lose"}`}>
+                          <span className={`font-bold ${psScore >= 110 ? "text-win" : psScore >= 100 ? "text-primary" : psScore >= 90 ? "text-foreground" : psScore >= 80 ? "text-muted-foreground" : "text-lose"}`}>
                             {psScore.toFixed(1)}
                           </span>
                         </td>
@@ -130,7 +130,7 @@ export default function Ranking() {
                         </td>
                         <td className="py-3 px-3 text-center whitespace-nowrap">
                           {player.seriesTotal > 0 ? (
-                            <span className={`font-bold text-sm ${player.seriesWinRate >= 60 ? "text-win" : player.seriesWinRate >= 50 ? "text-lol-blue-light" : "text-lose"}`}>
+                            <span className={`font-bold text-sm ${player.seriesWinRate >= 60 ? "text-win" : player.seriesWinRate >= 50 ? "text-primary" : "text-lose"}`}>
                               {player.seriesWinRate.toFixed(1)}%
                             </span>
                           ) : (

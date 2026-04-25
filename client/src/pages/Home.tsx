@@ -88,6 +88,7 @@ export default function Home() {
               {data.topPlayers.map((player, idx) => {
                 const total = player.wins + player.losses;
                 const winRate = total > 0 ? (player.wins / total) * 100 : 0;
+                const psScore = Number((player as any).psScore) || 0;
                 return (
                   <div key={player.id} className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer" onClick={() => setLocation(`/player/${encodeURIComponent(player.name)}`)}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
@@ -102,10 +103,10 @@ export default function Home() {
                       <p className="text-xs text-muted-foreground">{player.wins}승 {player.losses}패</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-sm text-primary">
-                        {Number((player as any).psScore) > 0 ? `${Number((player as any).psScore).toFixed(1)}점` : "-"}
+                      <p className={`font-bold text-sm ${psScore >= 110 ? "text-win" : psScore >= 100 ? "text-primary" : psScore >= 90 ? "text-foreground" : "text-lose"}`}>
+                        {psScore > 0 ? `${psScore.toFixed(1)}점` : "-"}
                       </p>
-                      <p className="text-xs text-muted-foreground">{player.wins}승 {player.losses}패</p>
+                      <p className="text-xs text-muted-foreground">{winRate.toFixed(1)}%</p>
                     </div>
                     <div className="w-24 hidden sm:block">
                       <div className="stat-bar">

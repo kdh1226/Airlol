@@ -35,7 +35,7 @@ function WinRateBar({ wins, losses, size = "md" }: { wins: number; losses: numbe
 function WinRateText({ wins, losses }: { wins: number; losses: number }) {
   const total = wins + losses;
   const winRate = total > 0 ? (wins / total) * 100 : 0;
-  const color = winRate >= 60 ? "text-win" : winRate >= 50 ? "text-gold" : "text-lose";
+  const color = winRate >= 60 ? "text-win" : winRate >= 50 ? "text-primary" : "text-lose";
   return <span className={`font-bold ${color}`}>{winRate.toFixed(1)}%</span>;
 }
 
