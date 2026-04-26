@@ -36,26 +36,28 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
-  // Scheduled sync API endpoint (for automated 30-min sync)
-  app.post("/api/scheduled/sync", async (req, res) => {
+  // Webhook sync API endpoint (called by Google Apps Script on spreadsheet edit)
+  app.post("/api/webhook/sync", async (req, res) => {
     try {
-      // Authenticate via session cookie (scheduled task gets auto-injected cookie)
-      let user = null;
-      try {
-        const { sdk: authSdk } = await import("./sdk");
-        user = await authSdk.authenticateRequest(req);
-      } catch {
-        // Not authenticated
-      }
-      if (!user) {
-        res.status(401).json({ error: "Unauthorized" });
+      const { ENV } = await import("./env");
+      // Authenticate via webhook secret in header or body
+      const headerSecret = req.headers["x-webhook-secret"] || req.headers["authorization"]?.replace("Bearer ", "");
+      const bodySecret = req.body?.secret;
+      const secret = headerSecret || bodySecret;
+      
+      if (!secret || secret !== ENV.webhookSecret) {
+        console.warn("[Webhook Sync] Invalid or missing secret");
+        res.status(401).json({ error: "Invalid webhook secret" });
         return;
       }
+      
+      console.log("[Webhook Sync] Triggered by Google Sheets webhook");
       const { syncFromSpreadsheet } = await import("../syncService");
       const result = await syncFromSpreadsheet();
+      console.log(`[Webhook Sync] Success: players=${result.playersUpdated}, champions=${result.championsUpdated}`);
       res.json(result);
     } catch (error: any) {
-      console.error("[Scheduled Sync] Error:", error.message);
+      console.error("[Webhook Sync] Error:", error.message);
       res.status(500).json({ error: error.message });
     }
   });
