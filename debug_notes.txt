@@ -1,0 +1,3 @@
+Champion images confirmed working on all visible rows (15-32).
+All champions showing icons properly: 브라움, 케이틀린, 스몰더, 녹턴, 모르가나, 카르마, 아무무, 나미, 아리, 말자하, 세라핀, 이즈리얼, 모데카이저, 나피리, 오공, 애니비아, 징크스, 루시안.
+Images are loading correctly from Data Dragon CDN.

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Swords, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { getChampionImageUrl } from "@/lib/championImage";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 
@@ -150,7 +151,24 @@ export default function Champions() {
                     return (
                       <tr key={champ.id} className="border-b border-border/50 hover:bg-secondary/50 transition-colors group">
                         <td className="py-3 px-4 text-muted-foreground">{idx + 1}</td>
-                        <td className="py-3 px-4 font-medium text-foreground whitespace-nowrap">{champ.name}</td>
+                        <td className="py-3 px-4 font-medium text-foreground whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            {getChampionImageUrl(champ.name) ? (
+                              <img
+                                src={getChampionImageUrl(champ.name)}
+                                alt={champ.name}
+                                className="w-8 h-8 rounded-md border border-border/50"
+                                loading="lazy"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-md bg-secondary flex items-center justify-center">
+                                <Swords className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            {champ.name}
+                          </div>
+                        </td>
                         <td className="py-3 px-4 text-center text-win font-medium whitespace-nowrap">{champ.wins}</td>
                         <td className="py-3 px-4 text-center text-lose font-medium whitespace-nowrap">{champ.losses}</td>
                         <td className="py-3 px-4 text-center text-muted-foreground whitespace-nowrap">{champ.total}</td>
