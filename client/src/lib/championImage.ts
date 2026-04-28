@@ -134,7 +134,7 @@ const CHAMPION_MAP: Record<string, string> = {
   "진": "Jhin",
   "질리언": "Zilean",
   "징크스": "Jinx",
-  "초가스": "ChoGath",
+  "초가스": "Chogath",
   "카르마": "Karma",
   "카밀": "Camille",
   "카사딘": "Kassadin",
