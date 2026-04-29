@@ -30,6 +30,7 @@ export default function Champions() {
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<'games' | 'winrate' | 'wins'>('games');
   const [name, setName] = useState("");
   const [wins, setWins] = useState(0);
   const [losses, setLosses] = useState(0);
@@ -38,9 +39,27 @@ export default function Champions() {
 
   const filteredChampions = useMemo(() => {
     if (!champions) return [];
-    if (!search) return champions;
-    return champions.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
-  }, [champions, search]);
+    let result = champions.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+    
+    // 중복 제거: 같은 이름의 챔피언은 첫 번째만 유지
+    const seen = new Set<string>();
+    result = result.filter(c => {
+      if (seen.has(c.name)) return false;
+      seen.add(c.name);
+      return true;
+    });
+    
+    // 정렬
+    if (sortBy === 'games') {
+      result.sort((a, b) => b.total - a.total);
+    } else if (sortBy === 'winrate') {
+      result.sort((a, b) => b.winRate - a.winRate);
+    } else if (sortBy === 'wins') {
+      result.sort((a, b) => b.wins - a.wins);
+    }
+    
+    return result;
+  }, [champions, search, sortBy]);
 
   const startEdit = (champ: any) => { setEditId(champ.id); setName(champ.name); setWins(champ.wins); setLosses(champ.losses); };
 
@@ -90,10 +109,35 @@ export default function Champions() {
         )}
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="챔피언 검색..." className="pl-10 bg-input border-border text-foreground" />
+      {/* Search and Sort */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="relative max-w-sm w-full sm:w-auto">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="챔피언 검색..." className="pl-10 bg-input border-border text-foreground" />
+        </div>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            variant={sortBy === 'games' ? 'default' : 'outline'}
+            onClick={() => setSortBy('games')}
+            className={sortBy === 'games' ? 'bg-primary text-primary-foreground hover:bg-gold-dark' : 'border-border text-foreground'}
+          >
+            판수
+          </Button>
+          <Button
+            variant={sortBy === 'winrate' ? 'default' : 'outline'}
+            onClick={() => setSortBy('winrate')}
+            className={sortBy === 'winrate' ? 'bg-primary text-primary-foreground hover:bg-gold-dark' : 'border-border text-foreground'}
+          >
+            승률
+          </Button>
+          <Button
+            variant={sortBy === 'wins' ? 'default' : 'outline'}
+            onClick={() => setSortBy('wins')}
+            className={sortBy === 'wins' ? 'bg-primary text-primary-foreground hover:bg-gold-dark' : 'border-border text-foreground'}
+          >
+            승리수
+          </Button>
+        </div>
       </div>
 
       {/* Champion Table */}
