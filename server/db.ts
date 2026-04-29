@@ -132,14 +132,51 @@ export async function deletePlayer(id: number) {
 export async function getAllChampions() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(champions).orderBy(asc(champions.name));
+  const result = await db.select().from(champions);
+  
+  // 중복 챔피언 병합: 같은 이름의 챔피언은 wins/losses 합산
+  const mergedMap = new Map<string, { id: number; name: string; wins: number; losses: number; createdAt: Date; updatedAt: Date }>();
+  for (const c of result) {
+    const existing = mergedMap.get(c.name);
+    if (existing) {
+      // 기존 데이터에 현재 데이터 합산
+      existing.wins += c.wins;
+      existing.losses += c.losses;
+      // updatedAt은 최신 시간으로 유지
+      if (c.updatedAt > existing.updatedAt) {
+        existing.updatedAt = c.updatedAt;
+      }
+    } else {
+      mergedMap.set(c.name, { ...c });
+    }
+  }
+  
+  return Array.from(mergedMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function getChampionRanking() {
   const db = await getDb();
   if (!db) return [];
   const result = await db.select().from(champions);
-  return result
+  
+  // 중복 챔피언 병합: 같은 이름의 챔피언은 wins/losses 합산
+  const mergedMap = new Map<string, { id: number; name: string; wins: number; losses: number; createdAt: Date; updatedAt: Date }>();
+  for (const c of result) {
+    const existing = mergedMap.get(c.name);
+    if (existing) {
+      // 기존 데이터에 현재 데이터 합산
+      existing.wins += c.wins;
+      existing.losses += c.losses;
+      // updatedAt은 최신 시간으로 유지
+      if (c.updatedAt > existing.updatedAt) {
+        existing.updatedAt = c.updatedAt;
+      }
+    } else {
+      mergedMap.set(c.name, { ...c });
+    }
+  }
+  
+  return Array.from(mergedMap.values())
     .map(c => ({
       ...c,
       total: c.wins + c.losses,

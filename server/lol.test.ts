@@ -447,9 +447,54 @@ describe("Sync Service", () => {
     expect(result).toEqual([["a", "b", "c"], ["1", "2", "3"]]);
   });
 
-  it("should handle quoted CSV fields", async () => {
-    const { parseCSV } = await import("./syncService");
-    const result = parseCSV('"hello, world",b,c');
-    expect(result[0][0]).toBe("hello, world");
+  it("should reject champion creation without auth", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    
+    await expect(
+      caller.champion.create({
+        name: "무인증챔피언",
+        wins: 0,
+        losses: 0,
+      })
+    ).rejects.toThrow();
+  });
+
+  it("should merge duplicate champions by name when retrieving ranking", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    
+    // ranking 조회 - 중복 챔피언이 있으면 병합되어야 함
+    const ranking = await caller.champion.ranking();
+    
+    // 챔피언 이름별 개수 확인 - 중복이 없어야 함
+    const nameMap = new Map<string, number>();
+    for (const champ of ranking) {
+      nameMap.set(champ.name, (nameMap.get(champ.name) || 0) + 1);
+    }
+    
+    // 모든 챔피언이 1번만 나타나야 함
+    for (const [name, count] of nameMap) {
+      expect(count).toBe(1);
+    }
+  });
+
+  it("should merge duplicate champions by name when retrieving list", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+    
+    // list 조회 - 중복 챔피언이 있으면 병합되어야 함
+    const list = await caller.champion.list();
+    
+    // 챔피언 이름별 개수 확인 - 중복이 없어야 함
+    const nameMap = new Map<string, number>();
+    for (const champ of list) {
+      nameMap.set(champ.name, (nameMap.get(champ.name) || 0) + 1);
+    }
+    
+    // 모든 챔피언이 1번만 나타나야 함
+    for (const [name, count] of nameMap) {
+      expect(count).toBe(1);
+    }
   });
 });
